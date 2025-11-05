@@ -8,14 +8,6 @@
 [![GitHub Stars](https://img.shields.io/github/stars/LinusNEP/SIL?style=social)](https://github.com/LinusNEP/SIL/stargazers)
 [![Last Commit](https://img.shields.io/github/last-commit/LinusNEP/SIL.svg)](https://github.com/LinusNEP/SIL/commits)
 
-<p align="center">
-  <h3>
-    | <a href="https://doi.org/xxxxx"> Paper</a> | 
-    <a href="https://arxiv.org/abs/xxxxx">ArXiv</a> | 
-    <a href="https://sites.google.com/view/anonymousresearcher/home">SIL Website</a> | 
-  </h3>
-</p>
-
 ## Summary Video
 [![Watch the Video](https://github.com/LinusNEP/SIL/blob/main/docs/sil-sim.png?raw=true)](https://drive.google.com/file/d/1v0kMQgpQIrWXoIKuYJBQMEm0-pLp6JVO/view?usp=sharing)
 
