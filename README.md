@@ -1,6 +1,6 @@
 # Beyond Master and Apprentice: Grounding Foundation Models for Symbiotic Interactive Learning in a Shared Latent Space (SIL)
 ## Summary Video
-[![Watch the Video](https://example.com/thumbnail.jpg)](https://drive.google.com/file/d/1v0kMQgpQIrWXoIKuYJBQMEm0-pLp6JVO/view?usp=sharing)
+[![Watch the Video](https://github.com/LinusNEP/TCC-IRoNL/blob/main/Figures/real_world_optimize.gif?raw=true)](https://drive.google.com/file/d/1v0kMQgpQIrWXoIKuYJBQMEm0-pLp6JVO/view?usp=sharing)
 
 ## 🚀 Getting Started
 To replicate the results shown on the [project website](https://sites.google.com/view/anonymousresearcher/home), we .....
@@ -78,30 +78,6 @@ destinations:
     aliases: ["lounge", "sitting area"]
     coords: {x: 1.0, y: 2.5, z: 0.0}
 ```
-## 🧪 Capabilities
-**Evaluated Task Domains:**
-1.  Embodied Instruction Following (EIF)
-   - Simple navigation: "go to the kitchen"
-   - Complex multi-step: "navigate there and come back here"
-   - Conditional reasoning: "stop 2 meters before reaching"
-
-2.  Memory-Based Interactive Information Retrieval (MIIR)
-   - Retrospective queries: "what was the last location you visited?"
-   - Procedural recall: command alias retention
-     
-3.   Query-Oriented Reasoning (QOR)
-   - Deductive: "navigate to the closer location"
-   - Hypothetical: "which locations would be visible from here?"
-   - Inductive: generalising from observed patterns
-
-4.  Proactive Dialogue and Suggestion (PDS)
-   - Clarification requests for ambiguous commands
-   - Context-aware suggestions
-
-5.  Long-Term Preference Learning (LPL)
-   - Adapting to communication styles
-   - Personalisation: "when I say move, I mean fastest speed"
-
 ## 🔧 Advanced Usage
 **Custom Belief Models**
 Extend the shared latent space with domain-specific representations:
