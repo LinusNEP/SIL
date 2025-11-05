@@ -1,4 +1,8 @@
 # Beyond Master and Apprentice: Grounding Foundation Models for Symbiotic Interactive Learning in a Shared Latent Space (SIL)
+[![ROS](https://img.shields.io/badge/ROS-Noetic-brightgreen.svg)](http://www.ros.org/)
+[![Python](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 <p align="center">
   <h3>
     | <a href="https://doi.org/xxxxx"><img width="31" height="32" alt="image" src="https://github.com/user-attachments/assets/b4833f94-3582-4dea-bc1a-9f0a70068ab5" /> Paper</a> | 
