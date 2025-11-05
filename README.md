@@ -1,11 +1,11 @@
 # Beyond Master and Apprentice: Grounding Foundation Models for Symbiotic Interactive Learning in a Shared Latent Space (SIL)
-[![SIL Official](https://img.shields.io/badge/SIL%20Open%20Font%20-lightblue.svg)](https://sites.google.com/view/anonymousresearcher/home)
-[![ROS](https://img.shields.io/badge/ROS-Noetic-brightgreen.svg)](http://www.ros.org/)
+[![SIL Official](https://img.shields.io/badge/SIL%20Official-lightblue.svg)](https://sites.google.com/view/anonymousresearcher/home)
+[![ROS 1](https://img.shields.io/badge/ROS-Noetic-brightgreen.svg)](http://www.ros.org/)
 [![ROS 2](https://img.shields.io/badge/ROS%202-Humble-blue.svg)](https://index.ros.org/doc/ros2/)
-[![Python](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
-[![CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
-[![PIP](https://img.shields.io/badge/PIP-orange.svg)](https://pypi.org/)
-[![Repo Stars](https://img.shields.io/github/stars/LinusNEP/SIL.svg?style=social)](https://github.com/LinusNEP/SIL/stargazers)
+[![Python](https://img.shields.io/badge/Python-≥3.8-blue.svg)](https://www.python.org/)
+[![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
+[![PyPI](https://img.shields.io/badge/PyPI-PIP-orange.svg)](https://pypi.org/)
+[![GitHub Stars](https://img.shields.io/github/stars/LinusNEP/SIL?style=social)](https://github.com/LinusNEP/SIL/stargazers)
 [![Last Commit](https://img.shields.io/github/last-commit/LinusNEP/SIL.svg)](https://github.com/LinusNEP/SIL/commits)
 
 <p align="center">
