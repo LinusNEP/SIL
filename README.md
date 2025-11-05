@@ -10,8 +10,8 @@
 
 <p align="center">
   <h3>
-    | <a href="https://doi.org/xxxxx"><img width="31" height="32" alt="image" src="https://github.com/user-attachments/assets/b4833f94-3582-4dea-bc1a-9f0a70068ab5" /> Paper</a> | 
-    <a href="https://arxiv.org/abs/xxxxx"><img width="31" height="32" alt="image" src="https://github.com/user-attachments/assets/22c3a2a6-f098-4a1c-8d16-17b2020c15e2" />ArXiv</a> | 
+    | <a href="https://doi.org/xxxxx"> Paper</a> | 
+    <a href="https://arxiv.org/abs/xxxxx">ArXiv</a> | 
     <a href="https://sites.google.com/view/anonymousresearcher/home">SIL Website</a> | 
   </h3>
 </p>
