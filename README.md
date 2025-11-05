@@ -1,6 +1,6 @@
 # Beyond Master and Apprentice: Grounding Foundation Models for Symbiotic Interactive Learning in a Shared Latent Space (SIL)
 ## Summary Video
-[![Watch the Video](https://github.com/LinusNEP/TCC-IRoNL/blob/main/Figures/real_world_optimize.gif?raw=true)](https://drive.google.com/file/d/1v0kMQgpQIrWXoIKuYJBQMEm0-pLp6JVO/view?usp=sharing)
+[![Watch the Video](https://github.com/LinusNEP/SIL/blob/main/docs/sil-sim.png?raw=true)](https://drive.google.com/file/d/1v0kMQgpQIrWXoIKuYJBQMEm0-pLp6JVO/view?usp=sharing)
 
 ## 🚀 Getting Started
 To replicate the results shown on the [project website](https://sites.google.com/view/anonymousresearcher/home), we .....
