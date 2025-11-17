@@ -38,8 +38,9 @@ source sil_env/bin/activate
 ```bash
 pip install -r requirements.txt
 ```
-4.  Set up ROS workspace:
+4.  Build the ROS workspace:
 ```bash
+cd ~/catkin_ws
 catkin_make
 source devel/setup.bash
 ```
