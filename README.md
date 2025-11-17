@@ -118,6 +118,7 @@ topics:
 ### Running SIL
 1.  Launch SIL core:
 ```bash
+cd ~/catkin_ws
 source devel/setup.bash
 roslaunch sil_ros sil_robot.launch
 ```
