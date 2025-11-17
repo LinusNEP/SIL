@@ -1,6 +1,6 @@
 
 ## 🚀 Getting Started
-To get started using SIL, we recommend following the setup instructions provided here.
+For a hitch-free use of SIL, we recommend following the setup instructions provided here.
 
 ### Prerequisites
 - **ROS Noetic** (recommended) or ROS2 Humble & Jazzy (currently been implemented)
