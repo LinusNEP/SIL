@@ -112,6 +112,7 @@ topics:
     - `/odom` (`nav_msgs/Odometry`) – robot odometry used by perception and action executor.
     - `/nav_vel` (`geometry_msgs/Twist`) – velocity commands for base.
     - `move_base` action server (`MoveBaseAction`) – goal navigation.
+
 **Important:** Update camera intrinsics, base frames, and destinations to match your robot setup.
 
 ### Running SIL
