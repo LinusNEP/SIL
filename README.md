@@ -12,19 +12,22 @@
 [![Watch the Video](https://github.com/LinusNEP/SIL/blob/main/docs/sil-sim.png?raw=true)](https://drive.google.com/file/d/1v0kMQgpQIrWXoIKuYJBQMEm0-pLp6JVO/view?usp=sharing)
 
 ## 🚀 Getting Started
-To replicate the results shown on the [project website](https://sites.google.com/view/anonymousresearcher/home), we recommend following the instructions provided here carefully.
+To reproduce the experiments and demonstrations shown on the [project website](https://sites.google.com/view/anonymousresearcher/home), we recommend following the setup instructions provided here.
 
 ### Prerequisites
 - **ROS Noetic** (recommended) or ROS2 Humble & Jazzy (currently been implemented)
 - **Python 3.8+**
-- **PyTorch** with CUDA support (for SAM and CLIP)
+- **PyTorch** with CUDA support (required for SAM, CLIP, and MiDaS)
 - **OpenAI API key** or compatible LLM provider
 
 ### Installation
-1.  Clone the repository:
+1.  For ROS 1, create a workspace and clone the repository:
    ```bash
+mkdir -p ~/catkin_ws/src
+cd ~/catkin_ws/src
+catkin_init_workspace
 git clone https://github.com/LinusNEP/SIL.git
-cd SIL
+cd ~/catkin_ws
 ```
 2.  Create and activate a virtual environment:
    ```bash
@@ -45,6 +48,72 @@ source devel/setup.bash
 export OPENAI_API_KEY="your-api-key-here"
 # Or configure in sil_config.yaml
 ```
+## ⚙️ Configurations
+### Key Configuration Parameters (`sil_config.yaml`)
+```yaml
+# Core SIL Settings
+sil:
+  enable: true
+  pre_execution_confirmation: true
+  post_execution_suggestions: true
+  enable_ensemble_uncertainty: true
+  clarification_threshold: 0.5
+
+# Memory Configuration  
+memory:
+  max_episodic_memory: 1000
+  semantic_update_threshold: 0.8
+  memory_directory: "/tmp/sil_memory"
+  auto_save_memory: true
+  memory_save_interval: 300
+
+# LLM and perception Configurations
+models:
+  llm_provider: "openai"  # openai, deepseek, claude, gemini, llama.cpp
+  llm_name: "gpt-4o"
+  llm_max_tokens: 500
+  llm_temperature: 0.5
+  llm_api_key: ""          # or via env var (e.g. OPENAI_API_KEY)
+  sam_checkpoint: "config/sam_vit_b_01ec64.pth"
+  embedding_model: "paraphrase-MiniLM-L6-v2"
+
+# Core ROS topics
+topics:
+  camera_color: "/camera/color/image_raw"
+  camera_depth: "/camera/depth/image_rect_raw"
+  cmd_vel: "/nav_vel"
+  odom: "/odom"
+
+  sil_response: "/sil_response"
+  sil_clarification: "/sil_clarification"
+  sil_suggestions: "/sil_suggestions"
+  sil_feedback: "/sil_feedback"
+  sil_command: "/sil_command"
+  sil_status: "/sil_status"
+  sil_metrics: "/sil_metrics"
+```
+### Topics Overview
+- **Input / Output:**
+    - `/llm_output` (`std_msgs/String`) – textual response stream.
+    - `/sil_response` (`std_msgs/String`) – SIL-specific responses.
+    - `/sil_clarification` (`std_msgs/String`) – clarification questions.
+    - `/sil_suggestions` (`std_msgs/String`) – proactive suggestions.
+
+- **SIL feedback and control:**
+   - `/sil_feedback` (`std_msgs/String`) – JSON feedback from chatGUI.
+   - `/sil_command` (`std_msgs/String`) – SIL-level commands (e.g. toggles).
+   - `/sil_status` (`std_msgs/String`) – status JSON (active, task id, etc.).
+   - `/sil_metrics` (`std_msgs/String`) – metrics/logging stream.
+   - `/emergency_stop` (`std_msgs/String`) – triggers emergency stop.
+
+- **Perception & navigation:**
+    - `topics/camera_color`, `topics/camera_depth` – input RGBD streams.
+    - `/llm_image_output` (`sensor_msgs/Image`) – images for chatGUI.
+    - `/odom` (`nav_msgs/Odometry`) – robot odometry used by perception and action executor.
+    - `/nav_vel` (`geometry_msgs/Twist`) – velocity commands for base.
+    - `move_base` action server (`MoveBaseAction`) – goal navigation.
+**Important:** Update camera intrinsics, base frames, and destinations to match your robot setup.
+
 ### Running SIL
 1.  Launch SIL core:
 ```bash
@@ -56,30 +125,10 @@ roslaunch sil_ros sil_robot.launch
 source devel/setup.bash
 roslaunch sil_ros sil_chatGUI.launch
 ```
-3. Interact with the SIL agent using natural language!
+3. Interact with the SIL agent using natural language! Commands, clarifications, suggestions, and memory retrieval are all handled in real time.
 
-## ⚙️ Configurations
-### Key Configuration Parameters (`sil_config.yaml`)
-```yaml
-# Core SIL Settings
-sil:
-  enable: true
-  clarification_threshold: 0.5
-  proactive_suggestions_enabled: true
-  enable_ensemble_uncertainty: true
-
-# Memory Configuration  
-memory:
-  max_episodic_memory: 1000
-  semantic_update_threshold: 0.8
-
-# LLM Configuration
-models:
-  llm_provider: "openai"  # openai, deepseek, claude, gemini, llama.cpp
-  llm_name: "gpt-4o"
-```
 ### Customising Destinations
-Add any environment-specific locations in `sil_config.yaml`:
+Define robot-relevant spaces (rooms, locations, zones) in `sil_config.yaml`:
 ```yaml
 destinations:
   living_room:
@@ -87,6 +136,7 @@ destinations:
     aliases: ["lounge", "sitting area"]
     coords: {x: 1.0, y: 2.5, z: 0.0}
 ```
+Destinations are automatically interpreted by the Action Executor and used for navigation planning.
 ## 🔧 Advanced Usage
 **Custom Belief Models**
 Extend the shared latent space with domain-specific representations:
