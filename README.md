@@ -109,11 +109,11 @@ class ProceduralMemory(EpisodicSemanticMemory):
 ## 📝 Citation
 If you use SIL in your research, please cite our paper:
 ```bibtex
-@article{sil2024,
+@article{nwankwo2025beyond,
   title={Beyond Master and Apprentice: Grounding Foundation Models for Symbiotic Interactive Learning in a Shared Latent Space},
-  author={Author1 and Author2},
-  journal={arXiv preprint},
-  year={2024}
+  author={Nwankwo, Linus and Ellensohn, Bj{\"o}rn and Rauch, Christian and Rueckert, Elmar},
+  journal={arXiv preprint arXiv:2511.05203},
+  year={2025}
 }
 ```
 ## 🤝 Contributing
