@@ -12,15 +12,15 @@
 [![Watch the Video](https://github.com/LinusNEP/SIL/blob/main/docs/sil-sim.png?raw=true)](https://drive.google.com/file/d/1v0kMQgpQIrWXoIKuYJBQMEm0-pLp6JVO/view?usp=sharing)
 
 ## 🚀 Getting Started
-To reproduce the experiments and demonstrations shown on the [project website](https://sites.google.com/view/anonymousresearcher/home), we recommend following the setup instructions provided here.
+To reproduce the experiments and demos shown on the [project website](https://sites.google.com/view/anonymousresearcher/home), we recommend following the setup instructions provided here.
 
 ### Prerequisites
 - **ROS Noetic** (recommended) or ROS2 Humble & Jazzy (currently been implemented)
 - **Python 3.8+**
-- **PyTorch** with CUDA support (required for SAM, CLIP, and MiDaS)
-- **OpenAI API key** or compatible LLM provider
+- **PyTorch** with CUDA-capable GPU support (required for SAM, CLIP, MiDaS, and accelerated LLM usage)
+- **OpenAI API key** or compatible LLM provider (DeepSeek, Claude, Gemini, llama.cpp, etc.)
 
-### Installation
+### Installation (Native on host)
 1.  For ROS 1, create a workspace and clone the repository:
    ```bash
 mkdir -p ~/catkin_ws/src
@@ -128,7 +128,8 @@ roslaunch sil_ros sil_robot.launch
 source devel/setup.bash
 roslaunch sil_ros sil_chatGUI.launch
 ```
-3. Interact with the SIL agent using natural language! Commands, clarifications, suggestions, and memory retrieval are all handled in real time.
+3. Interact with the SIL agent using natural language (speech or text)!
+   Commands, clarifications, suggestions, and memory retrieval are all handled in real time.
 
 ### Customising Destinations
 Define robot-relevant spaces (rooms, locations, zones) in `sil_config.yaml`:
@@ -159,6 +160,82 @@ class ProceduralMemory(EpisodicSemanticMemory):
         pass
 ```
 
+## 🐳 Docker Users — GPU-Accelerated Setup
+SIL provides a GPU-enabled Docker environment that bundles ROS, CUDA, PyTorch, and all Python dependencies. This is useful if you:
+- Don’t want to modify your host ROS/Python setup.
+- Need reproducible experiments across machines.
+- Deploy on servers or lab machines with limited root access.
+### Prerequisites
+- Install NVIDIA drivers and the NVIDIA container toolkit: `sudo apt install nvidia-driver-535`
+- NVIDIA Container Toolkit: `sudo apt-get install -y nvidia-container-toolkit`, `sudo nvidia-ctk runtime configure --runtime=docker`, `sudo systemctl restart docker`.
+### Build the SIL Docker image
+```bash
+docker build -t sil_ros:gpu .
+```
+### Run SIL in Docker (with GPU and GUI)
+```bash
+docker run -it --rm \
+    --gpus all \
+    --env="DISPLAY=$DISPLAY" \
+    --env="QT_X11_NO_MITSHM=1" \
+    --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
+    --network=host \
+    sil_ros:gpu
+```
+Ensure X11 is enabled: `xhost +local:docker`.
+Inside the container:
+```bash
+roslaunch sil_ros sil_robot.launch
+roslaunch sil_ros sil_chatGUI.launch
+```
+To persist memory and configuration across container runs:
+```bash
+mkdir -p ~/sil_memory ~/sil_config
+docker run -it --rm \
+    --gpus all \
+    -v ~/sil_memory:/root/sil_memory \
+    -v ~/sil_config:/root/sil_config \
+    --network=host \
+    sil_ros:gpu
+```
+For iterative development:
+```bash
+docker run -it --rm \
+    --gpus all \
+    -v $(pwd):/root/catkin_ws/src/sil_ros \
+    --network=host \
+    sil_ros:gpu
+```
+Then, inside the container:
+```bash
+cd /root/catkin_ws
+catkin_make
+```
+Accessing the host microphone (speech input):
+```bash
+docker run -it --rm \
+    --gpus all \
+    --device /dev/snd \
+    --group-add audio \
+    --network=host \
+    sil_ros:gpu
+```
+Accessing the host camera (USB):
+```bash
+docker run -it --rm \
+    --gpus all \
+    --device=/dev/video0 \
+    --network=host \
+    sil_ros:gpu
+```
+Pass API keys at runtime:
+```bash
+docker run -it --rm \
+    --gpus all \
+    -e OPENAI_API_KEY="your-key" \
+    --network=host \
+    sil_ros:gpu
+```
 ## 📝 Citation
 If you use SIL in your research, please cite our paper:
 ```bibtex
