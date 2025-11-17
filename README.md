@@ -12,7 +12,7 @@
 [![Watch the Video](https://github.com/LinusNEP/SIL/blob/main/docs/sil-sim.png?raw=true)](https://drive.google.com/file/d/1v0kMQgpQIrWXoIKuYJBQMEm0-pLp6JVO/view?usp=sharing)
 
 ## 🚀 Getting Started
-To replicate the results shown on the [project website](https://sites.google.com/view/anonymousresearcher/home), we .....
+To replicate the results shown on the [project website](https://sites.google.com/view/anonymousresearcher/home), we recommend following the instructions provided here carefully.
 
 ### Prerequisites
 - **ROS Noetic** (recommended) or ROS2 Humble & Jazzy (currently been implemented)
@@ -23,7 +23,7 @@ To replicate the results shown on the [project website](https://sites.google.com
 ### Installation
 1.  Clone the repository:
    ```bash
-git clone https://github.com/.....
+git clone https://github.com/LinusNEP/SIL.git
 cd SIL
 ```
 2.  Create and activate a virtual environment:
