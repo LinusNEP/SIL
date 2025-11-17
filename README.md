@@ -15,7 +15,7 @@ To reproduce the experiments and demos shown on the [project website](https://si
 [![Watch the Video](https://github.com/LinusNEP/SIL/blob/main/docs/sil-sim.png?raw=true)](https://drive.google.com/file/d/1v0kMQgpQIrWXoIKuYJBQMEm0-pLp6JVO/view?usp=sharing)
 
 ## 📝 Citation
-If you use SIL in your research, please cite our paper:
+If you use SIL in your research, consider citing our paper:
 ```bibtex
 @article{nwankwo2025beyond,
   title={Beyond Master and Apprentice: Grounding Foundation Models for Symbiotic Interactive Learning in a Shared Latent Space},
