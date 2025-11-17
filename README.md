@@ -160,7 +160,7 @@ class ProceduralMemory(EpisodicSemanticMemory):
         pass
 ```
 
-## 🐳 Docker Users — GPU-Accelerated Setup
+## 🐳 Docker
 SIL provides a GPU-enabled Docker environment that bundles ROS, CUDA, PyTorch, and all Python dependencies. This is useful if you:
 - Don’t want to modify your host ROS/Python setup.
 - Need reproducible experiments across machines.
