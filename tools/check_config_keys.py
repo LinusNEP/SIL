@@ -4,12 +4,10 @@ import glob
 import os
 import re
 import sys
-
 import yaml
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIG = os.path.join(ROOT, "config", "sil_config.yaml")
-
 
 def flatten(node, prefix=""):
     keys = set()
@@ -19,7 +17,6 @@ def flatten(node, prefix=""):
             keys.add(full)
             keys |= flatten(value, full)
     return keys
-
 
 def main() -> int:
     with open(CONFIG) as handle:
@@ -34,7 +31,7 @@ def main() -> int:
             for line in handle:
                 for match in pattern.findall(line):
                     key = match.strip("/")
-                    if key:  # skip the dynamic loader key built at runtime
+                    if key:
                         used.setdefault(key, set()).add(os.path.basename(path))
 
     missing = {k: v for k, v in used.items() if k not in cfg_keys}
@@ -47,7 +44,6 @@ def main() -> int:
         return 1
     print("All get_param keys resolve against the config. OK")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())
