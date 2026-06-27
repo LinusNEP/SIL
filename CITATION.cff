@@ -2,13 +2,9 @@ cff-version: 1.2.0
 message: "If you use this software, please cite the SIL paper below."
 title: "SIL: Symbiotic Interactive Learning for Language-Conditioned Human-Agent Co-Adaptation"
 abstract: >-
-  SIL is a bidirectional co-adaptation framework in which both the human and the
-  embodied agent maintain joint belief states in a shared latent task space that
-  evolve with the interaction history, enabling proactive clarification, adaptive
-  suggestions, and shared plan refinement. It couples foundation models for
-  spatial perception and reasoning with a triplet-loss-trained neural encoder,
-  and uses episodic / semantic memory regularised via elastic weight
-  consolidation to mitigate catastrophic forgetting.
+  SIL is a bidirectional co-adaptation framework in which both the human and the embodied agent maintain joint belief states in a shared latent task space that evolve with the interaction history, enabling proactive clarification, adaptive
+  suggestions, and shared plan refinement. It couples foundation models for spatial perception and reasoning with a triplet-loss-trained neural encoder,
+  and uses episodic/semantic memory regularised via elastic weight consolidation to mitigate catastrophic forgetting.
 type: software
 license: MIT
 repository-code: "https://github.com/linusnep/SIL"
