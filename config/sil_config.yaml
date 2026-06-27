@@ -1,6 +1,5 @@
 # =============================================================================
 # SIL — Symbiotic Interactive Learning
-#
 # Reference:
 #   Nwankwo et al., "SIL: Symbiotic Interactive Learning for Language-
 #   Conditioned Human-Agent Co-Adaptation."  https://linusnep.github.io/SIL/
@@ -59,7 +58,7 @@ sil:
     intent_distribution_dim: 10     
 
   # ------------------------------------------
-  # Belief alignment / clarification protocol
+  # Belief alignment/clarification protocol
   # -------------------------------------------
   alignment:
     misalignment_threshold: 0.6       
@@ -154,7 +153,7 @@ sil:
     tone: "natural"                     
 
   # ------------------------------------
-  # LLM reasoning / temperature presets
+  # LLM reasoning/temperature presets
   # -------------------------------------
   use_llm_reasoning: true
   llm_temperature_variation: true
@@ -195,7 +194,7 @@ sil:
     adapt_conversation_style: true
 
 # ------------------------------
-# Episodic / semantic memory  
+# Episodic/semantic memory  
 # ------------------------------
 memory:
   max_episodic_memory: 20000      
@@ -299,7 +298,7 @@ topics:
   move_base_action: "move_base"
   emergency_stop: "/emergency_stop"
 
-  # Language / interaction I/O
+  # Language/interaction I/O
   llm_input: "/llm_input"
   llm_output: "/llm_output"
   llm_image_output: "/llm_image_output"
