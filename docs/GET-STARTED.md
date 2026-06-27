@@ -5,7 +5,7 @@ For a hitch-free use of SIL, we recommend following the setup instructions provi
 - **ROS Noetic** (recommended) or ROS 2 Humble & Jazzy (currently being implemented)
 - **Python 3.8+**
 - **PyTorch** with a CUDA-capable GPU (required for SAM, CLIP, MiDaS, and accelerated LLM usage)
-- **A navigation stack**: `move_base` plus a localization source publishing `map → odom` (e.g. AMCL), and an RGB-D camera
+- **A navigation stack**: `move_base` plus a localisation source publishing `map → odom` (e.g. AMCL), and an RGB-D camera
 - **OpenAI API key** or a compatible LLM provider (DeepSeek, Claude, Gemini, llama.cpp, etc.)
 
 ### Installation (native on host)
@@ -101,7 +101,7 @@ topics:
 ```
 
 ### Topics overview
-- **Input / output:**
+- **Input/output:**
   - `/llm_output` (`std_msgs/String`) – textual response stream.
   - `/sil_response` (`std_msgs/String`) – SIL-specific responses.
   - `/sil_clarification` (`std_msgs/String`) – clarification questions.
@@ -183,9 +183,8 @@ experiments, or deploy on lab machines with limited root access.
 - NVIDIA Container Toolkit: `sudo apt-get install -y nvidia-container-toolkit`, then
   `sudo nvidia-ctk runtime configure --runtime=docker` and `sudo systemctl restart docker`.
 
-### Quick start with docker compose
-The provided `docker-compose.yml` wires up the GUI (X11), GPU, audio, host networking, and
-persistent volumes for learned memory and model caches:
+### Quick start with Docker Compose
+The provided `docker-compose.yml` wires up the GUI (X11), GPU, audio, host networking, and persistent volumes for learned memory and model caches:
 ```bash
 xhost +local:docker
 export OPENAI_API_KEY="your-key"
@@ -194,7 +193,7 @@ docker compose up --build
 Edit `config/sil_config.yaml` on the host (it is bind-mounted) and relaunch, no rebuild needed.
 Remove the `deploy.resources` block in the compose file to run CPU-only.
 
-### Manual docker build / run
+### Manual Docker build/run
 ```bash
 docker build -t sil_ros:gpu .
 docker run -it --rm \
