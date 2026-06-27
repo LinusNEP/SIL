@@ -1,0 +1,43 @@
+# =============================================================================
+# SIL — Python dependencies (install with: pip install -r requirements.txt)
+#
+# ROS 1 packages (rospy, tf, cv_bridge, move_base_msgs, dynamic_reconfigure,
+# message_filters, etc.) are NOT pip-installable — they are provided by your
+# ROS distribution (e.g. `sudo apt install ros-noetic-<pkg>`).
+# =============================================================================
+
+# --- Core scientific stack ---
+numpy>=1.21
+scipy>=1.7
+scikit-learn>=1.0
+PyYAML>=5.4
+
+# --- Deep learning / encoders ---
+torch>=1.12
+torchvision>=0.13
+sentence-transformers>=2.2
+transformers>=4.30
+
+# --- Vision-language perception ---
+segment-anything>=1.0
+opencv-python>=4.5
+filterpy>=1.4.5
+timm>=0.6                    
+
+# --- Open-vocabulary detection backends (optional) ---
+# Selected via perception/backend in sil_config.yaml.
+#   yolo_world / yoloe : pip install ultralytics
+#   sam3               : see https://github.com/facebookresearch/sam3
+ultralytics>=8.3           
+# --- Destination resolution ---
+rapidfuzz>=2.0
+
+# --- LLM providers ---
+openai>=1.0
+requests>=2.25
+
+# --- Chat GUI / speech I/O ---
+Pillow>=9.0
+SpeechRecognition>=3.8
+pyttsx3>=2.90
+gTTS>=2.2

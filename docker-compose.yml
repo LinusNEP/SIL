@@ -1,0 +1,53 @@
+# =============================================================================
+# SIL — docker-compose
+#
+# Quick start:
+#   xhost +local:root                 # allow the container to use your X server
+#   export OPENAI_API_KEY=sk-...       # or another provider's key
+#   docker compose up --build
+#
+# Notes
+#  * GUI: the chat window (Tkinter) is forwarded via X11 (DISPLAY + /tmp/.X11-unix).
+#  * GPU: the `deploy.resources` block requests an NVIDIA GPU for torch/SAM/CLIP/
+#    YOLO. Requires the NVIDIA Container Toolkit. Remove that block to run on CPU.
+#  * ROS master: runs inside the container. To talk to an external master/robot,
+#    set ROS_MASTER_URI / ROS_IP below and use network_mode: host.
+# =============================================================================
+services:
+  sil:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sil:latest
+    container_name: sil
+    network_mode: host
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      # Point at an external ROS master/robot if desired:
+      # - ROS_MASTER_URI=http://<robot-ip>:11311
+      # - ROS_IP=<this-host-ip>
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw          
+      - ./config:/root/catkin_ws/src/sil_ros/config:rw   
+      - sil_memory:/tmp/sil_memory                
+      - sil_models:/tmp/sil_models               
+      - hf_cache:/root/.cache                     
+    devices:
+      - /dev/snd:/dev/snd
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  sil_memory:
+  sil_models:
+  hf_cache:

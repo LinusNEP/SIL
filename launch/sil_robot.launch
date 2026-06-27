@@ -1,0 +1,21 @@
+<launch>
+  <arg name="config_file" default="$(find sil_ros)/config/sil_config.yaml" />
+  <arg name="launch_gui"  default="true" />
+  <arg name="launch_rviz" default="false" />
+
+  <rosparam file="$(arg config_file)" command="load" />
+
+  <!-- SIL Robot Controller -->
+  <node name="sil_robot_controller" pkg="sil_ros" type="sil_main.py" output="screen">
+    <!-- API key  -->
+    <env name="OPENAI_API_KEY" value="$(optenv OPENAI_API_KEY)" />
+  </node>
+
+  <!-- Chat GUI -->
+  <node if="$(arg launch_gui)" name="sil_chat_gui" pkg="sil_ros"
+        type="chatGUI_SR.py" output="screen" />
+
+  <!-- RViz -->
+  <node if="$(arg launch_rviz)" name="rviz" pkg="rviz" type="rviz"
+        args="-d $(find sil_ros)/rviz/sil_config.rviz" required="false" />
+</launch>

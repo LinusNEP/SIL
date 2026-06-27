@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIL - Symbiotic Interactive Learning</title>
+  <meta name="description" content="SIL: Symbiotic Interactive Learning for Language-Conditioned Human-Agent Co-Adaptation. A novel framework enabling bidirectional learning and co-adaptation between humans and agents in a shared latent space.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *{font-family:'Inter',sans-serif;margin:0;padding:0;box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:#0f172a}::-webkit-scrollbar-thumb{background:#334155;border-radius:4px}
+    .gradient-text{background:linear-gradient(135deg,#22d3ee,#3b82f6,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .fade-up{opacity:0;transform:translateY(30px);transition:opacity .6s ease,transform .6s ease}.fade-up.visible{opacity:1;transform:translateY(0)}
+    .lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:100;align-items:center;justify-content:center;cursor:zoom-out}
+    .lightbox.active{display:flex}.lightbox img{max-width:90vw;max-height:90vh;object-fit:contain;cursor:default;border-radius:8px}
+    .tab-btn.active{background:rgba(34,211,238,.15);border-color:rgba(34,211,238,.4);color:#22d3ee}
+    .collapse-content{max-height:0;overflow:hidden;transition:max-height .4s cubic-bezier(.4,0,.2,1)}
+    .collapse-content.open{max-height:2000px}
+    .interaction-item.active{background:rgba(34,211,238,.12);border-color:rgba(34,211,238,.4)}
+    .comparison-card{position:relative;overflow:hidden}.comparison-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+    .comparison-card.master::before{background:linear-gradient(90deg,#ef4444,#f97316)}
+    .comparison-card.sil::before{background:linear-gradient(90deg,#22d3ee,#3b82f6)}
+    #particles-canvas{position:absolute;inset:0;pointer-events:none}
+    .glow-card{transition:all .3s}.glow-card:hover{box-shadow:0 0 30px rgba(34,211,238,.08);border-color:rgba(34,211,238,.3);transform:translateY(-2px)}
+    .pipeline-node{transition:all .4s;opacity:.4;transform:scale(.95)}.pipeline-node.active{opacity:1;transform:scale(1);box-shadow:0 0 20px rgba(34,211,238,.2)}
+    .pipeline-node:focus-visible{outline:2px solid #22d3ee;outline-offset:2px}
+    @keyframes pulse-ring{0%{transform:scale(.8);opacity:.5}50%{transform:scale(1.2);opacity:0}100%{transform:scale(.8);opacity:.5}}
+    .chart-bar{transition:height .8s cubic-bezier(.4,0,.2,1),opacity .5s;height:0;opacity:0}.chart-bar.visible{opacity:1}
+    .nav-link{position:relative}.nav-link::after{content:'';position:absolute;bottom:-2px;left:0;width:0;height:2px;background:#22d3ee;transition:width .3s}.nav-link:hover::after{width:100%}
+    .typing-cursor::after{content:'|';animation:blink 1s infinite}@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+    .mob-menu{max-height:0;overflow:hidden;transition:max-height .3s ease}.mob-menu.open{max-height:300px}
+    .stat-bar-track{width:75%;margin:8px auto 0;height:6px;background:#1e293b;border-radius:99px;overflow:hidden}
+    .stat-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#22d3ee,#3b82f6);width:0;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+    .contrib-card{position:relative;overflow:hidden}.contrib-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:linear-gradient(180deg,#22d3ee,#3b82f6);border-radius:2px;opacity:0;transition:opacity .3s}.contrib-card:hover::before{opacity:1}
+    button:focus-visible,.nav-link:focus-visible,a:focus-visible{outline:2px solid #22d3ee;outline-offset:2px;border-radius:4px}
+    .tooltip{position:relative}.tooltip .tip{visibility:hidden;opacity:0;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:6px 10px;border-radius:8px;font-size:11px;white-space:nowrap;transition:opacity .2s;z-index:10;pointer-events:none}.tooltip:hover .tip{visibility:visible;opacity:1}
+    .eq-ref{font-size:10px;color:#22d3ee;cursor:help;vertical-align:super;font-weight:600}
+  </style>
+</head>
+<body class="bg-slate-950 text-gray-100">
+  <!-- Lightbox -->
+  <div id="lightbox" class="lightbox" onclick="if(event.target===this)closeLightbox()" role="dialog" aria-modal="true" aria-label="Image preview">
+    <button class="absolute top-4 right-4 text-white text-4xl hover:text-cyan-400 transition-colors z-10" onclick="closeLightbox()" aria-label="Close">&times;</button>
+    <img id="lightbox-img" src="" alt="Enlarged view">
+  </div>
+
+  <!-- Nav -->
+  <nav class="fixed top-0 w-full bg-slate-950/90 backdrop-blur-xl z-50 border-b border-slate-800/50">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+      <a href="#home" class="font-extrabold text-xl gradient-text tracking-tight">SIL</a>
+      <div class="hidden md:flex gap-5 items-center">
+        <a href="#home" class="nav-link text-sm text-gray-400 hover:text-cyan-400 transition-colors">Home</a>
+        <a href="#problem" class="nav-link text-sm text-gray-400 hover:text-cyan-400 transition-colors">Problem</a>
+        <a href="#method" class="nav-link text-sm text-gray-400 hover:text-cyan-400 transition-colors">Contributions</a>
+        <a href="#architecture" class="nav-link text-sm text-gray-400 hover:text-cyan-400 transition-colors">Architecture</a>
+        <a href="#experiments" class="nav-link text-sm text-gray-400 hover:text-cyan-400 transition-colors">Experiments</a>
+        <a href="#results" class="nav-link text-sm text-gray-400 hover:text-cyan-400 transition-colors">Results</a>
+        <a href="#qualitative" class="nav-link text-sm text-gray-400 hover:text-cyan-400 transition-colors">Qualitative</a>
+        <a href="https://github.com/LinusNEP/SIL" target="_blank" rel="noopener" class="flex items-center gap-1.5 text-sm text-gray-400 hover:text-cyan-400 transition-colors">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>Code
+        </a>
+      </div>
+      <button id="mobBtn" class="md:hidden text-gray-400 p-1" aria-label="Toggle menu" aria-expanded="false">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+    <div id="mobMenu" class="mob-menu md:hidden bg-slate-900 border-t border-slate-800 px-4 space-y-1">
+      <a href="#home" class="block text-sm text-gray-400 py-2 hover:text-cyan-400">Home</a>
+      <a href="#problem" class="block text-sm text-gray-400 py-2 hover:text-cyan-400">Problem</a>
+      <a href="#method" class="block text-sm text-gray-400 py-2 hover:text-cyan-400">Contributions</a>
+      <a href="#architecture" class="block text-sm text-gray-400 py-2 hover:text-cyan-400">Architecture</a>
+      <a href="#experiments" class="block text-sm text-gray-400 py-2 hover:text-cyan-400">Experiments</a>
+      <a href="#results" class="block text-sm text-gray-400 py-2 hover:text-cyan-400">Results</a>
+      <a href="#qualitative" class="block text-sm text-gray-400 py-2 hover:text-cyan-400">Qualitative</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section id="home" class="pt-28 pb-10 px-4 relative overflow-hidden min-h-[90vh] flex items-center">
+    <canvas id="particles-canvas"></canvas>
+    <div class="max-w-4xl mx-auto text-center relative z-10">
+      <div class="inline-flex items-center gap-2 px-3 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-full text-xs text-cyan-400 mb-6 fade-up">
+        <span class="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse"></span>
+        Accepted for publication and presentation at the 35th IEEE International Conference on Robot and Human Interactive Communication (RO-MAN 2026), Kitakyushu, Fukuoka, Japan.
+      </div>
+      <h1 class="text-3xl md:text-5xl font-extrabold mb-5 leading-tight gradient-text tracking-tight fade-up">SIL: Symbiotic Interactive Learning for Language-Conditioned Human-Agent Co-Adaptation</h1>
+      <h2 class="text-base md:text-lg text-gray-300 mb-5 font-light max-w-3xl mx-auto leading-relaxed fade-up">A Framework for <span class="text-cyan-400 font-medium">Bidirectional Learning and Co-adaptation </span> within a Shared Latent Space in Natural Language-Conditioned HRI</h2>
+      <p class="text-gray-500 mb-6 text-sm fade-up">
+        <a href="mailto:linus.nwankwo@unileoben.ac.at" class="text-cyan-400/80 hover:text-cyan-300 transition-colors">Linus Nwankwo</a><sup>*</sup>,
+        Björn Ellensohn, Christian Rauch, Elmar Rueckert<br>
+        <span class="text-gray-600 text-xs">Chair of Cyber-Physical Systems, Technical University of Leoben, Austria</span>
+      </p>
+      <div class="flex flex-wrap justify-center gap-2.5 mb-10 fade-up">
+        <a href="https://arxiv.org/pdf/2511.05203" target="_blank" rel="noopener" class="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-lg font-medium hover:shadow-lg hover:shadow-cyan-500/25 transition-all text-sm">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>Paper
+        </a>
+        <a href="https://arxiv.org/abs/2511.05203" target="_blank" rel="noopener" class="px-5 py-2.5 bg-slate-800 border border-slate-700 rounded-lg hover:border-cyan-500/40 transition-all text-sm">arXiv</a>
+        <a href="https://github.com/LinusNEP/SIL" target="_blank" rel="noopener" class="flex items-center gap-2 px-5 py-2.5 bg-slate-800 border border-slate-700 rounded-lg hover:border-cyan-500/40 transition-all text-sm">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>GitHub
+        </a>
+        <a href="https://drive.google.com/file/d/1v0kMQgpQIrWXoIKuYJBQMEm0-pLp6JVO/view?usp=sharing" target="_blank" rel="noopener" class="flex items-center gap-2 px-5 py-2.5 bg-slate-800 border border-slate-700 rounded-lg hover:border-cyan-500/40 transition-all text-sm">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Video
+        </a>
+        <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener" class="flex items-center gap-2 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg hover:border-cyan-500/40 transition-colors text-sm">CC BY 4.0</a>
+      </div>
+
+      <!-- Abstract -->
+      <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 text-left fade-up backdrop-blur-sm">
+        <h3 class="text-xs font-semibold text-cyan-400 mb-3 uppercase tracking-widest">Abstract</h3>
+        <p class="text-gray-400 text-sm leading-relaxed" id="abstract-text"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Strip -->
+  <section class="py-8 px-4 border-y border-slate-800/50 bg-slate-900/30">
+    <div class="max-w-4xl mx-auto grid grid-cols-3 gap-4">
+      <div class="text-center stat-box" data-target="90.4" data-suffix="%" data-label="Task Completion Rate">
+        <div class="text-2xl sm:text-3xl md:text-4xl font-extrabold gradient-text stat-number">0%</div>
+        <div class="text-gray-500 text-xs mt-1">Task Completion Rate</div>
+        <div class="text-gray-600 text-[10px] mt-0.5">Avg. (↑ better)</div>
+        <div class="stat-bar-track"><div class="stat-bar-fill"></div></div>
+      </div>
+      <div class="text-center stat-box" data-target="0.83" data-prefix="ρ ≈ " data-decimals="2">
+        <div class="text-2xl sm:text-3xl md:text-4xl font-extrabold gradient-text stat-number">ρ ≈ 0</div>
+        <div class="text-gray-500 text-xs mt-1">Belief Alignment</div>
+        <div class="text-gray-600 text-[10px] mt-0.5">Avg. (↑ better)</div>
+        <div class="stat-bar-track"><div class="stat-bar-fill"></div></div>
+      </div>
+      <div class="text-center stat-box" data-target="0.46" data-decimals="2">
+        <div class="text-2xl sm:text-3xl md:text-4xl font-extrabold gradient-text stat-number">0</div>
+        <div class="text-gray-500 text-xs mt-1">Clarification Efficiency</div>
+        <div class="text-gray-600 text-[10px] mt-0.5">Avg. (↓ better)</div>
+        <div class="stat-bar-track"><div class="stat-bar-fill"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Problem Comparison -->
+  <section id="problem" class="py-16 px-4">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="text-2xl font-bold mb-3 fade-up flex items-center gap-3"><div class="w-1 h-8 bg-gradient-to-b from-red-400 to-cyan-500 rounded-full"></div>The Master-Apprentice Problem</h2>
+      <p class="text-gray-400 text-sm mb-6 max-w-3xl fade-up">State-of-the-art language-conditioned HRI frameworks treat communication as a unidirectional process. SIL fundamentally changes this dynamic.</p>
+      
+      <div class="flex items-center justify-center gap-4 mb-8 fade-up">
+        <span id="label-master" class="text-sm font-medium text-red-400 transition-colors">Traditional</span>
+        <button id="paradigm-toggle" onclick="toggleParadigm()" class="w-16 h-8 bg-slate-700 rounded-full relative transition-colors cursor-pointer" role="switch" aria-checked="false" aria-label="Toggle between Traditional and SIL paradigm">
+          <div id="toggle-dot" class="w-6 h-6 bg-red-400 rounded-full absolute top-1 left-1 transition-all duration-300 shadow-lg"></div>
+        </button>
+        <span id="label-sil" class="text-sm font-medium text-gray-500 transition-colors">SIL</span>
+      </div>
+
+      <div class="relative overflow-hidden rounded-2xl border border-slate-800" style="min-height:320px;">
+        <div id="paradigm-master" class="transition-all duration-500">
+          <div class="comparison-card master bg-slate-900 p-6 md:p-8">
+            <div class="flex items-center gap-3 mb-6">
+              <div class="w-10 h-10 rounded-xl bg-red-500/15 flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+              </div>
+              <div>
+                <h3 class="font-bold text-lg text-red-300">Master → Apprentice</h3>
+                <p class="text-gray-500 text-xs">Unidirectional, reactive, no learning</p>
+              </div>
+            </div>
+            <div class="flex items-center justify-center gap-2 mb-8">
+              <div class="flex flex-col items-center">
+                <div class="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-slate-800 border-2 border-red-500/30 flex items-center justify-center mb-2"><span class="text-2xl">👤</span></div>
+                <span class="text-xs text-gray-400">Human</span>
+                <span class="text-[10px] text-red-400 mt-1">Full burden</span>
+              </div>
+              <div class="flex flex-col items-center mx-2 md:mx-4">
+                <svg class="w-10 md:w-12 h-6 text-red-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 48 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2 12h40m0 0l-6-6m6 6l-6 6"/></svg>
+                <span class="text-[10px] text-gray-600 mt-1">Commands only</span>
+              </div>
+              <div class="flex flex-col items-center">
+                <div class="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-slate-800 border-2 border-gray-600 flex items-center justify-center mb-2"><span class="text-2xl">🤖</span></div>
+                <span class="text-xs text-gray-400">Agent</span>
+                <span class="text-[10px] text-gray-600 mt-1">Passive executor</span>
+              </div>
+            </div>
+            <div class="grid sm:grid-cols-2 gap-3">
+              <div class="bg-slate-800/50 rounded-lg p-3 text-xs text-gray-400"><span class="text-red-400 mr-1">✗</span>Agent is a <strong class="text-gray-200">passive executor</strong> — no memory of prior interactions</div>
+              <div class="bg-slate-800/50 rounded-lg p-3 text-xs text-gray-400"><span class="text-red-400 mr-1">✗</span>Excessive <strong class="text-gray-200">corrective burden</strong> on the human partner</div>
+              <div class="bg-slate-800/50 rounded-lg p-3 text-xs text-gray-400"><span class="text-red-400 mr-1">✗</span>Human bears the <strong class="text-gray-200">entire reasoning burden</strong></div>
+              <div class="bg-slate-800/50 rounded-lg p-3 text-xs text-gray-400"><span class="text-red-400 mr-1">✗</span><strong class="text-gray-200">No reciprocal learning</strong> — agent never contributes</div>
+            </div>
+            <div class="mt-4 text-center text-sm text-red-400/60">Avg. task completion: <strong class="text-red-300">60.1%</strong> <span class="text-[10px] text-gray-600">(Static LLM baseline)</span></div>
+          </div>
+        </div>
+        <div id="paradigm-sil" class="transition-all duration-500 absolute inset-0 opacity-0 pointer-events-none">
+          <div class="comparison-card sil bg-slate-900 p-6 md:p-8 h-full">
+            <div class="flex items-center gap-3 mb-6">
+              <div class="w-10 h-10 rounded-xl bg-cyan-500/15 flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+              </div>
+              <div>
+                <h3 class="font-bold text-lg text-cyan-300">Symbiotic ↔ Co-Adaptive</h3>
+                <p class="text-gray-500 text-xs">Bidirectional, proactive, evolving</p>
+              </div>
+            </div>
+            <div class="flex items-center justify-center gap-2 mb-8">
+              <div class="flex flex-col items-center">
+                <div class="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-slate-800 border-2 border-cyan-500/40 flex items-center justify-center mb-2"><span class="text-2xl">👤</span></div>
+                <span class="text-xs text-gray-400">Human</span>
+                <span class="text-[10px] text-cyan-400 mt-1">Co-adapts</span>
+              </div>
+              <div class="flex flex-col items-center mx-2 md:mx-4">
+                <div class="relative">
+                  <svg class="w-14 md:w-16 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 64 32"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12h52m0 0l-5-5m5 5l-5 5"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M60 20H8m0 0l5 5m-5-5l5-5" opacity=".5"/></svg>
+                  <div class="absolute inset-0 flex items-center justify-center"><div class="w-3 h-3 bg-cyan-500 rounded-full animate-ping opacity-30"></div></div>
+                </div>
+                <span class="text-[10px] text-cyan-500/60 mt-1">Shared latent space</span>
+              </div>
+              <div class="flex flex-col items-center">
+                <div class="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-slate-800 border-2 border-cyan-500/40 flex items-center justify-center mb-2"><span class="text-2xl">🤖</span></div>
+                <span class="text-xs text-gray-400">Agent</span>
+                <span class="text-[10px] text-cyan-400 mt-1">Co-adapts</span>
+              </div>
+            </div>
+            <div class="grid sm:grid-cols-2 gap-3">
+              <div class="bg-slate-800/50 rounded-lg p-3 text-xs text-gray-400"><span class="text-cyan-400 mr-1">✓</span><strong class="text-gray-200">Bidirectional belief alignment</strong> — iteratively updated shared beliefs</div>
+              <div class="bg-slate-800/50 rounded-lg p-3 text-xs text-gray-400"><span class="text-cyan-400 mr-1">✓</span><strong class="text-gray-200">Proactive clarification</strong> — agent seeks disambiguation when needed</div>
+              <div class="bg-slate-800/50 rounded-lg p-3 text-xs text-gray-400"><span class="text-cyan-400 mr-1">✓</span><strong class="text-gray-200">Episodic + semantic memory</strong> — retains learned preferences</div>
+              <div class="bg-slate-800/50 rounded-lg p-3 text-xs text-gray-400"><span class="text-cyan-400 mr-1">✓</span><strong class="text-gray-200">EWC anti-forgetting</strong> — Fisher information safeguards</div>
+            </div>
+            <div class="mt-4 text-center text-sm text-cyan-400/60">Avg. task completion: <strong class="text-cyan-300">90.4%</strong> <span class="text-[10px] text-gray-600">(Full SIL)</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Key Contributions -->
+  <section id="method" class="py-14 px-4">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="text-2xl font-bold mb-3 flex items-center gap-3 fade-up"><div class="w-1 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full"></div>Key Contributions</h2>
+      <p class="text-gray-400 text-sm mb-8 max-w-3xl fade-up">SIL introduces several novel components that together enable co-adaptive human-robot interaction.</p>
+      <div class="grid md:grid-cols-2 gap-4 fade-up">
+        <div class="contrib-card bg-slate-900/50 border border-slate-800 rounded-xl p-5 hover:border-cyan-500/30 transition-all">
+          <div class="text-cyan-400 font-mono text-xs mb-2">01</div>
+          <h4 class="font-semibold mb-2">Characterisation of the Master-Apprentice Problem</h4>
+          <p class="text-gray-400 text-sm leading-relaxed">We identify and formalise the unidirectional learning problem in language-conditioned HRI, where the agent maintains a static belief B<sup>A</sup><sub>static</sub> with ∂θ/∂t = 0, imposing the entire alignment burden on the human.</p>
+        </div>
+        <div class="contrib-card bg-slate-900/50 border border-slate-800 rounded-xl p-5 hover:border-cyan-500/30 transition-all">
+          <div class="text-cyan-400 font-mono text-xs mb-2">02</div>
+          <h4 class="font-semibold mb-2">Shared Latent Task Space Formalisation</h4>
+          <p class="text-gray-400 text-sm leading-relaxed">We modelled co-adaptation as belief-state evolution. Both human and agent maintain structured belief states B<sup>H</sup> and B<sup>A</sup> that co-evolve within Z ⊆ ℝ<sup>d</sup>, each modulated by the other's latent embedding via learned influence vectors.</p>
+        </div>
+        <div class="contrib-card bg-slate-900/50 border border-slate-800 rounded-xl p-5 hover:border-cyan-500/30 transition-all">
+          <div class="text-cyan-400 font-mono text-xs mb-2">03</div>
+          <h4 class="font-semibold mb-2">Grounded Foundation Model Pipeline</h4>
+          <p class="text-gray-400 text-sm leading-relaxed"> We employed pre-trained FMs (SAM for zero-shot segmentation, CLIP for vision-language alignment) for spatial perception, paired with a lightweight latent encoder ϕ : ℝ<sup>768</sup> → Z. GPT-4o provides ensemble-based reasoning and uncertainty quantification.</p>
+        </div>
+        <div class="contrib-card bg-slate-900/50 border border-slate-800 rounded-xl p-5 hover:border-cyan-500/30 transition-all">
+          <div class="text-cyan-400 font-mono text-xs mb-2">04</div>
+          <h4 class="font-semibold mb-2">Memory Architecture with EWC Safeguards</h4>
+          <p class="text-gray-400 text-sm leading-relaxed">SIL employs dual-component memory (episodic buffer + semantic consolidation) augmented with Elastic Weight Consolidation (EWC). EWC estimates parameter importance via Fisher information F<sup>(k)</sup> to prevent catastrophic forgetting (λ = 1000) of learned tasks representations.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Video Demos -->
+  <section id="demos" class="py-14 px-4 bg-slate-900/30">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="text-2xl font-bold mb-6 fade-up flex items-center gap-3"><div class="w-1 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full"></div>Demo Videos</h2>
+      <div class="grid md:grid-cols-2 gap-5 fade-up">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden group hover:border-cyan-500/30 transition-colors">
+          <div class="aspect-[4/3] bg-slate-950 relative overflow-hidden">
+            <iframe class="w-full h-full" src="https://www.youtube.com/embed/aua734moxwU?enablejsapi=1&mute=1&playsinline=1&rel=0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div class="p-4 border-t border-slate-800">
+            <p class="text-sm text-gray-200 font-medium">Simulation Demo</p>
+            <p class="text-xs text-gray-500 mt-0.5">SIL agent in Gazebo with Unitree Go1 quadruped</p>
+          </div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden group hover:border-cyan-500/30 transition-colors">
+          <div class="aspect-[4/3] bg-slate-950 relative overflow-hidden">
+            <iframe class="w-full h-full" src="https://www.youtube.com/embed/bf-zEaUfHu4?enablejsapi=1&mute=1&playsinline=1&rel=0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div class="p-4 border-t border-slate-800">
+            <p class="text-sm text-gray-200 font-medium">Real-World Demo</p>
+            <p class="text-xs text-gray-500 mt-0.5">SIL agent on physical robot</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pipeline -->
+  <section id="pipeline" class="py-16 px-4 bg-slate-900/30">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="text-2xl font-bold mb-3 fade-up flex items-center gap-3"><div class="w-1 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full"></div>SIL Processing Pipeline</h2>
+      <p class="text-gray-400 text-sm mb-8 fade-up">Click each stage to see how data flows through the system. Labels correspond to the model architecture shown below.</p>
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6 fade-up" id="pipeline-nodes">
+        <button onclick="selectPipeline(0)" class="pipeline-node active rounded-xl bg-slate-900 border border-slate-700 p-4 text-center cursor-pointer hover:border-cyan-500/30">
+          <div class="text-2xl mb-2">🗣️</div><div class="text-xs font-semibold text-cyan-400">A — Input</div><div class="text-[10px] text-gray-500 mt-1">Voice / Text</div>
+        </button>
+        <button onclick="selectPipeline(1)" class="pipeline-node rounded-xl bg-slate-900 border border-slate-700 p-4 text-center cursor-pointer hover:border-cyan-500/30">
+          <div class="text-2xl mb-2">👁️</div><div class="text-xs font-semibold text-cyan-400">G — Perception</div><div class="text-[10px] text-gray-500 mt-1">SAM + CLIP</div>
+        </button>
+        <button onclick="selectPipeline(2)" class="pipeline-node rounded-xl bg-slate-900 border border-slate-700 p-4 text-center cursor-pointer hover:border-cyan-500/30">
+          <div class="text-2xl mb-2">🧠</div><div class="text-xs font-semibold text-cyan-400">B/C — Reasoning</div><div class="text-[10px] text-gray-500 mt-1">GPT-4o + UQ</div>
+        </button>
+        <button onclick="selectPipeline(3)" class="pipeline-node rounded-xl bg-slate-900 border border-slate-700 p-4 text-center cursor-pointer hover:border-cyan-500/30">
+          <div class="text-2xl mb-2">🔗</div><div class="text-xs font-semibold text-cyan-400">D/E/F — Latent</div><div class="text-[10px] text-gray-500 mt-1">Belief + Memory + EWC</div>
+        </button>
+        <button onclick="selectPipeline(4)" class="pipeline-node rounded-xl bg-slate-900 border border-slate-700 p-4 text-center cursor-pointer hover:border-cyan-500/30">
+          <div class="text-2xl mb-2">⚡</div><div class="text-xs font-semibold text-cyan-400">H — Execution</div><div class="text-[10px] text-gray-500 mt-1">ROS Action</div>
+        </button>
+      </div>
+      <div id="pipeline-detail" class="bg-slate-900 border border-slate-800 rounded-xl p-6 fade-up transition-all">
+        <h4 class="font-semibold text-sm text-cyan-400 mb-2" id="pipe-title">Natural Language Input</h4>
+        <p class="text-gray-400 text-sm leading-relaxed" id="pipe-desc"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Architecture -->
+  <section id="architecture" class="py-16 px-4">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="text-2xl font-bold mb-6 fade-up flex items-center gap-3"><div class="w-1 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full"></div>Architecture</h2>
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 fade-up mb-6">
+        <div class="bg-slate-950 rounded-xl border border-slate-700 overflow-hidden cursor-pointer hover:border-cyan-500/40 transition-colors relative" onclick="openLightbox('https://raw.githubusercontent.com/LinusNEP/SIL/main/docs/assets/sil-architecture.png')">
+          <img src="https://raw.githubusercontent.com/LinusNEP/SIL/main/docs/assets/sil-architecture.png" alt="SIL Architecture diagram showing the full pipeline from Fig. 2" class="w-full object-contain" loading="lazy">
+          <div class="absolute bottom-2 right-2 bg-slate-900/80 backdrop-blur-sm px-2.5 py-1 rounded-lg text-xs text-gray-400 flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
+            Click to enlarge
+          </div>
+        </div>
+      </div>
+      <div class="grid md:grid-cols-2 gap-3 fade-up">
+        <div class="glow-card bg-slate-900/50 border border-slate-800 rounded-xl p-5">
+          <div class="text-cyan-400 font-mono text-xs mb-2 opacity-50">01</div>
+          <h4 class="font-semibold text-sm mb-2">Shared Latent Task Space</h4>
+          <p class="text-gray-400 text-xs leading-relaxed">Belief states B<sup>H</sup> and B<sup>A</sup> co-evolve within Z ⊆ ℝ<sup>d</sup> (d=256). Bidirectional influence via learned weight matrices W<sub>HA</sub>, W<sub>AH</sub>. Alignment measured by ρ<sub>t</sub>; clarification triggered when ρ &lt; τ<sub>mis</sub>=0.6.</p>
+        </div>
+        <div class="glow-card bg-slate-900/50 border border-slate-800 rounded-xl p-5">
+          <div class="text-cyan-400 font-mono text-xs mb-2 opacity-50">02</div>
+          <h4 class="font-semibold text-sm mb-2">Grounded Foundation Models</h4>
+          <p class="text-gray-400 text-xs leading-relaxed">SAM + CLIP for zero-shot segmentation and open-vocabulary recognition with dual-fidelity filtering. GPT-4o ensemble (K temperatures) for reasoning. Lightweight encoder ϕ : ℝ<sup>768</sup> → Z bridges perception to task space.</p>
+        </div>
+        <div class="glow-card bg-slate-900/50 border border-slate-800 rounded-xl p-5">
+          <div class="text-cyan-400 font-mono text-xs mb-2 opacity-50">03</div>
+          <h4 class="font-semibold text-sm mb-2">Dual Memory Architecture</h4>
+          <p class="text-gray-400 text-xs leading-relaxed">Episodic memory for interaction-specific traces (2000 episodes, 60 days). Semantic memory consolidates patterns. Belief-aware retrieval balances semantic similarity (w<sub>s</sub>=0.6) and belief alignment (w<sub>b</sub>=0.4).</p>
+        </div>
+        <div class="glow-card bg-slate-900/50 border border-slate-800 rounded-xl p-5">
+          <div class="text-cyan-400 font-mono text-xs mb-2 opacity-50">04</div>
+          <h4 class="font-semibold text-sm mb-2">EWC Anti-Forgetting</h4>
+          <p class="text-gray-400 text-xs leading-relaxed">Elastic Weight Consolidation estimates parameter importance via Fisher information F<sup>(k)</sup>. Task-shift detection via performance windows (10/20 episodes). Importance coefficient λ=1000 balances plasticity and stability.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Experiments -->
+  <section id="experiments" class="py-16 px-4 bg-slate-900/30">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="text-2xl font-bold mb-6 fade-up flex items-center gap-3"><div class="w-1 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full"></div>Evaluation Dimensions</h2>
+        <p class="text-gray-400 text-sm mb-6 fade-up">We conducted a total of 350 interaction episodes distributed across the five task domains below: EIF (n = 120), MIIR (n = 60), QOR (n = 80), PDS (n = 40), and LPL (n = 50). Each experiment was repeated over 5 independent runs to account for variability in LLM sampling and encoder initialisation.</p>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 fade-up" id="exp-cards">
+          <button onclick="selectExp(0)" class="exp-card bg-slate-800/50 border-2 border-cyan-500/40 rounded-xl p-4 text-left transition-all hover:border-cyan-500/40">
+          <div class="text-cyan-400 font-mono text-xs font-bold">EIF</div>
+          <h4 class="font-medium text-xs mt-1">Embodied Instruction Following</h4>
+        </button>
+        <button onclick="selectExp(1)" class="exp-card bg-slate-800/50 border-2 border-transparent rounded-xl p-4 text-left transition-all hover:border-slate-600">
+          <div class="text-green-400 font-mono text-xs font-bold">MIIR</div>
+          <h4 class="font-medium text-xs mt-1">Memory-Based Info Retrieval</h4>
+        </button>
+        <button onclick="selectExp(2)" class="exp-card bg-slate-800/50 border-2 border-transparent rounded-xl p-4 text-left transition-all hover:border-slate-600">
+          <div class="text-amber-400 font-mono text-xs font-bold">QOR</div>
+          <h4 class="font-medium text-xs mt-1">Query-Oriented Reasoning</h4>
+        </button>
+        <button onclick="selectExp(3)" class="exp-card bg-slate-800/50 border-2 border-transparent rounded-xl p-4 text-left transition-all hover:border-slate-600">
+          <div class="text-purple-400 font-mono text-xs font-bold">PDS</div>
+          <h4 class="font-medium text-xs mt-1">Proactive Dialogue & Suggestion</h4>
+        </button>
+        <button onclick="selectExp(4)" class="exp-card bg-slate-800/50 border-2 border-transparent rounded-xl p-4 text-left transition-all hover:border-slate-600">
+          <div class="text-pink-400 font-mono text-xs font-bold">LPL</div>
+          <h4 class="font-medium text-xs mt-1">Long-Term Preference Learning</h4>
+        </button>
+      </div>
+      <div id="exp-detail" class="bg-slate-900 border border-slate-800 rounded-xl p-5 mt-4 fade-up">
+        <p class="text-gray-400 text-sm leading-relaxed" id="exp-text"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Results -->
+  <section id="results" class="py-16 px-4">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="text-2xl font-bold mb-6 fade-up flex items-center gap-3"><div class="w-1 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full"></div>Results</h2>
+      <div class="flex flex-wrap gap-2 mb-5 fade-up">
+        <button onclick="showTab('tab-ablation')" class="tab-btn active px-4 py-2 text-xs rounded-lg border border-slate-700 bg-slate-800 text-gray-400 transition-all" id="btn-tab-ablation">Interactive Ablation</button>
+        <button onclick="showTab('tab-belief')" class="tab-btn px-4 py-2 text-xs rounded-lg border border-slate-700 bg-slate-800 text-gray-400 transition-all" id="btn-tab-belief">Belief Alignment</button>
+        <button onclick="showTab('tab-tables')" class="tab-btn px-4 py-2 text-xs rounded-lg border border-slate-700 bg-slate-800 text-gray-400 transition-all" id="btn-tab-tables">Tables & Figures</button>
+      </div>
+
+      <!-- Ablation Tab -->
+      <div id="tab-ablation" class="tab-content fade-up">
+        <p class="text-gray-400 text-sm mb-4">Toggle ablation variants to compare against full SIL. Bars show averaged TCR (%) per domain.</p>
+        <div class="flex flex-wrap gap-2 mb-4" id="abl-buttons"></div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+          <div class="flex items-end gap-1 h-56" id="ablation-chart"></div>
+          <div class="flex gap-1 mt-2" id="ablation-labels"></div>
+          <div class="flex flex-wrap gap-3 mt-4 pt-3 border-t border-slate-800" id="abl-legend"></div>
+        </div>
+      </div>
+
+      <!-- Belief Tab -->
+      <div id="tab-belief" class="tab-content hidden fade-up">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h4 class="font-semibold text-sm">Belief Alignment (ρ) Over Interaction Turns</h4>
+            <button onclick="replayBeliefChart()" class="text-xs px-3 py-1.5 bg-cyan-500/15 text-cyan-400 rounded-lg hover:bg-cyan-500/25 transition-colors">▶ Replay</button>
+          </div>
+          <canvas id="belief-canvas" width="700" height="300" class="w-full rounded-lg" style="max-height:300px"></canvas>
+          <div class="flex flex-wrap gap-4 mt-3 text-xs">
+            <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-cyan-400 inline-block rounded"></span>Full SIL (ρ ≈ 0.83)</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-red-400 inline-block rounded"></span>w/o Co-Adapt (≈ 0.52)</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-amber-400 inline-block rounded"></span>w/o EWC (≈ 0.65)</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-gray-500 inline-block rounded"></span>w/o Memory (≈ 0.59)</span>
+          </div>
+          <!-- <p class="text-[10px] text-gray-600 mt-2">Values. Curve shapes approximate trajectory patterns.</p> -->
+        </div>
+      </div>
+
+      <!-- Tables Tab -->
+      <div id="tab-tables" class="tab-content hidden fade-up">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden mb-4">
+          <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+            <div>
+              <h4 class="font-semibold text-sm">Performance of SIL Across Task Domains</h4>
+              <p class="text-[10px] text-gray-500 mt-1">TCR = Task Completion Rate, CE = Clarification Efficiency (↓ better), BA = Belief Alignment</p>
+            </div>
+            <span class="text-[10px] text-gray-500 hidden sm:block">Click headers to sort</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs" id="perf-table">
+              <thead>
+                <tr class="border-b border-slate-800 text-gray-400">
+                  <th class="p-3 text-left font-medium cursor-pointer hover:text-cyan-400 transition-colors" onclick="sortTable('perf-table',0,'perf')">Metric <span class="text-gray-600">↕</span></th>
+                  <th class="p-3 text-center font-medium cursor-pointer hover:text-cyan-400 transition-colors" onclick="sortTable('perf-table',1,'perf')">EIF <span class="text-gray-600">↕</span></th>
+                  <th class="p-3 text-center font-medium cursor-pointer hover:text-cyan-400 transition-colors" onclick="sortTable('perf-table',2,'perf')">MIIR <span class="text-gray-600">↕</span></th>
+                  <th class="p-3 text-center font-medium cursor-pointer hover:text-cyan-400 transition-colors" onclick="sortTable('perf-table',3,'perf')">QOR <span class="text-gray-600">↕</span></th>
+                  <th class="p-3 text-center font-medium cursor-pointer hover:text-cyan-400 transition-colors" onclick="sortTable('perf-table',4,'perf')">PDS <span class="text-gray-600">↕</span></th>
+                  <th class="p-3 text-center font-medium cursor-pointer hover:text-cyan-400 transition-colors" onclick="sortTable('perf-table',5,'perf')">LPL <span class="text-gray-600">↕</span></th>
+                </tr>
+              </thead>
+              <tbody id="perf-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tables -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden mb-4">
+          <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+            <div>
+              <h4 class="font-semibold text-sm">Ablation Study on SIL's Core Architecture</h4>
+              <p class="text-[10px] text-gray-500 mt-1">Metrics averaged across all task categories</p>
+            </div>
+            <span class="text-[10px] text-gray-500 hidden sm:block">Click headers to sort</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs" id="abl-table">
+              <thead>
+                <tr class="border-b border-slate-800 text-gray-400">
+                  <th class="p-3 text-left font-medium cursor-pointer hover:text-cyan-400 transition-colors" onclick="sortTable('abl-table',0,'abl')">Model Variant <span class="text-gray-600">↕</span></th>
+                  <th class="p-3 text-center font-medium cursor-pointer hover:text-cyan-400 transition-colors" onclick="sortTable('abl-table',1,'abl')">TCR (%) ↑ <span class="text-gray-600">↕</span></th>
+                  <th class="p-3 text-center font-medium cursor-pointer hover:text-cyan-400 transition-colors" onclick="sortTable('abl-table',2,'abl')">CE ↓ <span class="text-gray-600">↕</span></th>
+                  <th class="p-3 text-center font-medium cursor-pointer hover:text-cyan-400 transition-colors" onclick="sortTable('abl-table',3,'abl')">BA (ρ) ↑ <span class="text-gray-600">↕</span></th>
+                  <th class="p-3 text-center font-medium">Δ TCR</th>
+                </tr>
+              </thead>
+              <tbody id="abl-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Figures -->
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            <div class="p-3 border-b border-slate-800"><h4 class="font-semibold text-sm">Task Success Rate</h4></div>
+            <div class="p-3"><img src="https://raw.githubusercontent.com/LinusNEP/SIL/main/docs/assets/success-rate.png" alt="Task Success Rate" class="w-full rounded cursor-pointer hover:opacity-90 transition-opacity" onclick="openLightbox(this.src)" loading="lazy"></div>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            <div class="p-3 border-b border-slate-800"><h4 class="font-semibold text-sm">Belief Alignment Plot</h4></div>
+            <div class="p-3"><img src="https://raw.githubusercontent.com/LinusNEP/SIL/main/docs/assets/belief-alignment.png" alt="Belief Alignment Plot" class="w-full rounded cursor-pointer hover:opacity-90 transition-opacity" onclick="openLightbox(this.src)" loading="lazy"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Qualitative -->
+  <section id="qualitative" class="py-16 px-4 bg-slate-900/30">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="text-2xl font-bold mb-3 fade-up flex items-center gap-3"><div class="w-1 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full"></div>Qualitative Visualisations</h2>
+      <p class="text-gray-400 text-sm mb-6 fade-up">Yellow paths show agent trajectories. Use arrow keys or click to navigate.</p>
+      <div class="grid lg:grid-cols-4 gap-4 fade-up">
+        <div class="lg:col-span-1 bg-slate-900 border border-slate-800 rounded-xl p-3 max-h-[480px] overflow-y-auto">
+          <h4 class="font-semibold text-xs mb-2 text-gray-500 sticky top-0 bg-slate-900 py-1.5 uppercase tracking-widest z-10">Interactions</h4>
+          <div class="space-y-0.5" id="interaction-list"></div>
+        </div>
+        <div class="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+          <div class="p-3 border-b border-slate-800 flex items-center gap-2 flex-wrap">
+            <span class="text-cyan-400 font-mono text-xs bg-cyan-500/10 px-2 py-0.5 rounded" id="int-id">Int 1</span>
+            <span id="int-cat" class="text-xs px-1.5 py-0.5 rounded font-mono">EIF</span>
+            <span class="text-gray-300 text-sm font-medium" id="int-title">Multistep Navigation</span>
+          </div>
+          <div class="bg-slate-950 relative">
+            <video id="int-video" autoplay muted loop playsinline controls class="w-full object-contain" style="max-height:70vh"></video>
+          </div>
+          <div class="p-3 border-t border-slate-800">
+            <p class="text-gray-300 text-sm italic" id="int-desc"></p>
+          </div>
+          <div class="flex justify-between items-center p-3 border-t border-slate-800">
+            <button onclick="prevInt()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs flex items-center gap-1 transition-colors">← Prev</button>
+            <span class="text-gray-600 text-xs" id="int-counter">1/14</span>
+            <button onclick="nextInt()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs flex items-center gap-1 transition-colors">Next →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="py-14 px-4">
+    <div class="max-w-4xl mx-auto">
+      <h2 class="text-2xl font-bold mb-6 flex items-center gap-3 fade-up"><div class="w-1 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full"></div>FAQ</h2>
+      <div class="space-y-2.5 fade-up" id="faq-container"></div>
+    </div>
+  </section>
+
+  <!-- Resources -->
+  <section id="resources" class="py-16 px-4">
+    <div class="max-w-4xl mx-auto">
+      <h2 class="text-2xl font-bold mb-6 fade-up flex items-center gap-3"><div class="w-1 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full"></div>Resources & Citation</h2>
+      <div class="grid sm:grid-cols-3 gap-3 mb-6 fade-up">
+        <a href="https://arxiv.org/pdf/2511.05203" target="_blank" rel="noopener" class="glow-card bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
+          <div class="text-2xl mb-2">📄</div><h3 class="font-semibold text-sm">Paper</h3><p class="text-gray-500 text-xs mt-1">arXiv PDF</p>
+        </a>
+        <a href="https://github.com/LinusNEP/SIL" target="_blank" rel="noopener" class="glow-card bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
+          <div class="text-2xl mb-2">💻</div><h3 class="font-semibold text-sm">Code</h3><p class="text-gray-500 text-xs mt-1">GitHub repo</p>
+        </a>
+        <a href="https://drive.google.com/file/d/1v0kMQgpQIrWXoIKuYJBQMEm0-pLp6JVO/view?usp=sharing" target="_blank" rel="noopener" class="glow-card bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
+          <div class="text-2xl mb-2">🎬</div><h3 class="font-semibold text-sm">Video</h3><p class="text-gray-500 text-xs mt-1">Demo walkthrough</p>
+        </a>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden mb-6 fade-up">
+        <div class="p-4 flex items-center justify-between border-b border-slate-800">
+          <h3 class="font-semibold text-sm">BibTeX</h3>
+          <button onclick="copyCite()" id="copyBtn" class="px-3 py-1.5 bg-cyan-500/15 text-cyan-400 rounded-lg text-xs hover:bg-cyan-500/25 transition-colors">Copy</button>
+        </div>
+        <pre id="cite-text" class="p-4 bg-slate-950 text-xs text-gray-400 overflow-x-auto font-mono leading-relaxed">@article{nwankwo2025beyond,
+  title={SIL: Symbiotic Interactive Learning for Language-Conditioned Human-Agent Co-Adaptation},
+  author={Nwankwo, Linus and Ellensohn, Bj{\"o}rn and 
+          Rauch, Christian and Rueckert, Elmar},
+  journal={arXiv preprint arXiv:2511.05203},
+  year={2025}
+}</pre>
+      </div>
+      <div class="bg-cyan-500/5 border border-cyan-500/15 rounded-xl p-5 fade-up">
+        <h3 class="font-semibold text-sm mb-3 flex items-center gap-2">
+          <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          Updates
+        </h3>
+        <div class="space-y-2 text-sm text-gray-400">
+          <div class="flex items-start gap-3"><span class="text-cyan-500 text-xs font-mono mt-0.5 w-16 flex-shrink-0">May 2026</span><span>Manuscript accepted for publication and presentation at IEEE RO-MAN 2026.</span></div>
+        </div>
+        <div class="space-y-2 text-sm text-gray-400">
+          <div class="flex items-start gap-3"><span class="text-cyan-500 text-xs font-mono mt-0.5 w-16 flex-shrink-0">March 2026</span><span>Manuscript submitted for publication review.</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="py-8 px-4 border-t border-slate-800">
+    <div class="max-w-4xl mx-auto text-center">
+      <p class="text-gray-500 text-xs mb-1">Supported by the "MINEVIEW" project — Republic of Austria, Federal Ministry of Climate Action</p>
+      <p class="text-gray-600 text-xs">Chair of Cyber-Physical Systems, Technical University of Leoben &middot; <a href="mailto:linus.nwankwo@unileoben.ac.at" class="hover:text-cyan-400 transition-colors">linus.nwankwo@unileoben.ac.at</a> &middot; <a href="https://creativecommons.org/licenses/by/4.0/" class="hover:text-cyan-400 transition-colors">CC BY 4.0</a></p>
+    </div>
+  </footer>
+
+<script>
+// ── Data (all values from the paper) ──
+const interactions=[
+  {id:1,t:"Multistep Navigation",cat:"EIF",d:"Navigate between passage way and location (2,1,0), return to current location",video:"https://raw.githubusercontent.com/LinusNEP/SIL/main/docs/assets/cut-01.mp4"},
+  {id:2,t:"Episodic Recall",cat:"MIIR",d:"What task did you just perform?",video:"https://raw.githubusercontent.com/LinusNEP/SIL/main/docs/assets/cut-02.mp4"},
+  {id:3,t:"Task Replay",cat:"MIIR",d:"Repeat the previous task",video:"https://raw.githubusercontent.com/LinusNEP/SIL/main/docs/assets/cut-03.mp4"},
+  {id:4,t:"Conditional Navigation",cat:"QOR",d:"If round trip > 20s, navigate twice; otherwise, make circle of 0.75m",video:"https://raw.githubusercontent.com/LinusNEP/SIL/main/docs/assets/cut-04.mp4"},
+  {id:5,t:"Unmet Condition Replay",cat:"QOR",d:"Move between the coordinates twice",video:"https://raw.githubusercontent.com/LinusNEP/SIL/main/docs/assets/cut-05.mp4"},
+  {id:6,t:"Scene Report",cat:"QOR",d:"Return to origin and describe what you can see",video:"https://raw.githubusercontent.com/LinusNEP/SIL/main/docs/assets/cut-06.mp4"},
+  {id:7,t:"Object Query + Nav",cat:"PDS",d:"Where can I find a spoon? Take me to the location",video:"https://raw.githubusercontent.com/LinusNEP/SIL/main/docs/assets/cut-07.mp4"},
+  {id:8,t:"Intent Inference",cat:"PDS",d:"I want to make professional academic inquiries. Take me to possible location",video:"https://raw.githubusercontent.com/LinusNEP/SIL/main/docs/assets/cut-08.mp4"},
+  {id:9,t:"Ambiguous Reference",cat:"PDS",d:"Head there and return here quickly",video:"https://raw.githubusercontent.com/LinusNEP/SIL/main/docs/assets/cut-09.mp4"},
+  {id:10,t:"Intent Reframing",cat:"PDS",d:"No, I mean the location where I can relax and enjoy nature",video:"https://raw.githubusercontent.com/LinusNEP/SIL/main/docs/assets/cut-10.mp4"},
+  {id:11,t:"Preference Alias",cat:"LPL",d:"Patrol mode means head to Prof. and Sec. office, send photos",video:"https://raw.githubusercontent.com/LinusNEP/SIL/main/docs/assets/cut-11.mp4"},
+  {id:12,t:"Distractor Task",cat:"LPL",d:"Go to the hallway and return here",video:"https://raw.githubusercontent.com/LinusNEP/SIL/main/docs/assets/cut-12.mp4"},
+  {id:13,t:"Alias Invocation",cat:"LPL",d:"Now patrol mode",video:"https://raw.githubusercontent.com/LinusNEP/SIL/main/docs/assets/cut-13.mp4"},
+  {id:14,t:"Geometric Command",cat:"EIF",d:"Return to origin and make a circle of 0.5m radius",video:"https://raw.githubusercontent.com/LinusNEP/SIL/main/docs/assets/cut-14.mp4"}
+];
+
+const catCls={EIF:'text-blue-400 bg-blue-500/10',MIIR:'text-green-400 bg-green-500/10',QOR:'text-amber-400 bg-amber-500/10',PDS:'text-purple-400 bg-purple-500/10',LPL:'text-pink-400 bg-pink-500/10'};
+
+const pipeData=[
+  {t:"A — Natural Language Input",d:"User provides instructions via voice (speech-to-text) or text through the interaction/feedback interface. Ranges from simple commands (e.g., 'move forward 1.5m') to complex multi-step tasks with ambiguous references, conditional logic, and implicit context from prior interactions."},
+  {t:"G — Spatial Perception (SAM + CLIP)",d:"SAM performs zero-shot instance segmentation from RGB-D streams. CLIP classifies masks via joint vision-language embeddings with dual-fidelity filtering (semantic confidence + energy-based uncertainty). 3D coordinates derived by projecting 2D mask centroids using camera intrinsics + depth, tracked over time with a Kalman filter. Together they enable open-vocabulary understanding of the physical environment."},
+  {t:"B/C — LLM Reasoning & Uncertainty (GPT-4o)",d:"GPT-4o parses intent, plans action sequences, and quantifies uncertainty. When confidence is low, it triggers proactive clarification rather than blind execution — offering candidate interpretations based on prior interactions and current context. This mitigates misalignment risks and fosters a more interactive, human-like dialogue."},
+  {t:"D/E/F — Shared Latent Belief Space + Memory + EWC",d:"Human (B^H) and agent (B^A) belief states co-evolve in Z ⊆ ℝ^256 via learned influence vectors. Alignment monitored via ρ; ρ < τ_mis=0.6 triggers clarification. Dual memory (episodic + semantic) with belief-aware retrieval. EWC safeguards via Fisher information (λ=1000) protect against catastrophic forgetting of learned representations."},
+  {t:"H — Action Execution (ROS)",d:"Refined plan dispatched as ROS actions. Navigation uses the ROS planning stack with Rao-Blackwellized particle filter SLAM and AMCL localisation. Execution outcome feeds back into the belief space as success signal s_t ∈ [0,1], closing the co-adaptation loop."}
+];
+
+const expData=[
+  "Navigation commands from simple ('move forward 1.5m') to complex multi-step with ambiguous references, conditional constraints (e.g., 'if round trip > 20s, navigate twice; otherwise, make a circle of 0.75m'), and temporal complexity. Includes single-turn direct commands, multi-turn long-horizon tasks requiring context retention, and constraint-rich tasks with conditional reasoning.",
+  "Tests memory-augmented architecture and anti-forgetting safeguards. Two categories: (i) retrospective queries requiring episodic recall and spatial reasoning ('what was the last location you visited?'), and (ii) procedural queries testing stability of learned command aliases (e.g., 'patrol now' after distractor tasks).",
+  "Three reasoning types: deductive (logical reasoning over known spatial map, e.g., 'navigate to the closer office'), hypothetical (reasoning without execution, e.g., 'which locations would be visible from the workshop?'), and inductive (generalisation from experience, e.g., 'what object is typically found in offices?').",
+  "Handles ambiguous instructions ('head there and return here quickly'), triggers clarification dialogues when ρ < τ_mis, infers intent from context, and proactively suggests alternatives based on prior interaction history. Tests dialogue management and intent-disambiguation capabilities.",
+  "Multi-turn sessions testing adaptation to user communication styles ('when I say move, I mean max speed'), command alias learning ('patrol mode means…'), and preference retention across distractor tasks. Evaluates whether SIL retains and applies learned preferences in subsequent commands."
+];
+
+// Ablation data — per-domain task success rates for each variant (values from paper, averaged across all tasks in that domain)
+const ablData={
+  full:{EIF:87,LPL:95,MIIR:92,PDS:94,QOR:83,color:'#22d3ee',label:'Full SIL'},
+  staticLLM:{EIF:58,LPL:62,MIIR:60,PDS:63,QOR:57,color:'#6b7280',label:'Static LLM'},
+  noCoadapt:{EIF:60,LPL:63,MIIR:62,PDS:64,QOR:59,color:'#ef4444',label:'w/o Co-Adapt'},
+  noMemory:{EIF:70,LPL:66,MIIR:58,PDS:75,QOR:72,color:'#f59e0b',label:'w/o Memory'},
+  noEWC:{EIF:68,LPL:58,MIIR:72,PDS:70,QOR:68,color:'#a855f7',label:'w/o EWC'},
+  noUncert:{EIF:64,LPL:68,MIIR:62,PDS:60,QOR:60,color:'#10b981',label:'w/o Uncertainty'},
+  noPref:{EIF:72,LPL:55,MIIR:70,PDS:68,QOR:65,color:'#f472b6',label:'w/o Pref. Model'}
+};
+const domains=['EIF','LPL','MIIR','PDS','QOR'];
+let activeAbl=new Set(['full']);
+
+const faqData=[
+  {q:"What is the master-apprentice problem in HRI?",a:"Traditional HRI frameworks treat the robot as a passive executor that only receives commands without contributing insights, adapting to the human, or retaining context across interactions. The human bears the entire reasoning burden, having to provide precise instructions, rephrase when misunderstood, and mentally track all context. Formally, the agent maintains a time-invariant belief B<sup>A</sup><sub>static</sub> with ∂θ/∂t = 0, creating persistent misalignments with the human's evolving belief z<sup>H</sup><sub>t</sub>."},
+  {q:"How does SIL achieve bidirectional co-adaptation?",a:'SIL maintains structured belief states for both human (B<sup>H</sup>) and agent (B<sup>A</sup>) in a shared latent task space Z ⊆ ℝ<sup>d</sup>. These states co-evolve through mutual influence, each participant\'s belief is modulated by the other\'s latent embedding via learned weight matrices W<sub>HA</sub> and W<sub>AH</sub>. Alignment is measured by ρ<sub>t</sub>, and when it drops below τ<sub>mis</sub>=0.6, proactive clarification is triggered.'},
+  {q:"What prevents catastrophic forgetting?",a:"SIL uses Elastic Weight Consolidation (EWC), which estimates the importance of each parameter via Fisher information F<sup>(k)</sup>. During updates, an EWC penalty (λ=1000) resists changes to parameters deemed critical for prior tasks. Task shifts are detected when short-term performance degrades relative to medium-term baseline. The ablation study confirms this is critical, disabling EWC reduces TCR from 90.4% to 67.3%."},
+  {q:"What foundation models does SIL use?",a:"SIL leverages SAM (Segment Anything Model) for zero-shot instance segmentation, CLIP for visual-semantic alignment with dual-fidelity filtering (semantic confidence + energy-based uncertainty), and GPT-4o for language understanding, intent inference, and ensemble-based uncertainty quantification. These are paired with a lightweight latent encoder ϕ : ℝ<sup>768</sup> → Z that grounds their outputs into task-specific representations."},
+  {q:"What platforms does SIL support?",a:'SIL is built on ROS (Noetic) and ROS 2 (Humble) and has been validated in Gazebo simulation (Unitree Go1 quadruped, Nvidia RTX-4090) and on real-world platforms (Lenovo ThinkBook Intel Core i7). Key hyperparameters: d=256, α<sub>A</sub>=0.1, α<sub>H</sub>=0.05, τ<sub>mis</sub>=0.6, λ=1000. See the <a href="https://github.com/LinusNEP/SIL" class="text-cyan-400 hover:underline" target="_blank" rel="noopener">GitHub repository</a> for installation instructions.'}
+];
+
+// ── Table data ──
+const perfData=[
+  {m:'TCR (%) ↑',EIF:87.36,MIIR:92.18,QOR:82.88,PDS:94.35,LPL:94.89},
+  {m:'CE ↓',EIF:0.79,MIIR:0.43,QOR:0.60,PDS:0.43,LPL:0.05},
+  {m:'BA (ρ) ↑',EIF:0.76,MIIR:0.86,QOR:0.80,PDS:0.84,LPL:0.89}  
+];
+
+const ablTableData=[
+  {m:'SIL (Full)',TCR:90.4,CE:0.46,BA:0.83,best:true},
+  {m:'Static LLM',TCR:60.1,CE:null,BA:null,best:false},
+  {m:'w/o Co-Adaptation',TCR:61.7,CE:0.55,BA:0.52,best:false},
+  {m:'w/o Episodic Memory',TCR:68.3,CE:0.50,BA:0.59,best:false},
+  {m:'w/o EWC Safeguard',TCR:67.3,CE:0.56,BA:0.65,best:false},
+  {m:'w/o Uncertainty Quantification',TCR:62.8,CE:0.52,BA:0.55,best:false},
+  {m:'w/o Human Preference Model',TCR:66.0,CE:0.51,BA:0.59,best:false}
+];
+
+// ── Particles ──
+function initParticles(){
+  const c=document.getElementById('particles-canvas'),ctx=c.getContext('2d');
+  let w,h,pts=[];
+  const isMobile=window.innerWidth<768;
+  const count=isMobile?30:60;
+  function resize(){w=c.width=c.parentElement.offsetWidth;h=c.height=c.parentElement.offsetHeight;pts=[];for(let i=0;i<count;i++)pts.push({x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*1.5+.5})}
+  resize();window.addEventListener('resize',resize);
+  const maxDist=isMobile?80:120;
+  function draw(){
+    ctx.clearRect(0,0,w,h);
+    for(let i=0;i<pts.length;i++){const p=pts[i];p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>w)p.vx*=-1;if(p.y<0||p.y>h)p.vy*=-1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle='rgba(34,211,238,.15)';ctx.fill()}
+    for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=dx*dx+dy*dy;if(d<maxDist*maxDist){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle=`rgba(34,211,238,${.06*(1-Math.sqrt(d)/maxDist)})`;ctx.stroke()}}
+    requestAnimationFrame(draw)
+  }
+  draw()
+}
+
+// ── Typing Abstract ──
+function typeAbstract(){
+  const text="Today's autonomous agents, largely driven by foundation models (FMs), can understand natural language instructions and solve long-horizon tasks with human-like reasoning. However, current human-robot interaction frameworks largely follow a <strong class=\"text-white\">one-way master-apprentice technique</strong>, where the agent passively executes commands without reciprocal learning. This neglects the co-adaptive, multi-turn nature of everyday human-to-human interactions. We introduce <strong class=\"text-white\">symbiotic interactive learning (SIL)</strong>, a bidirectional co-adaptation framework in a <strong class=\"text-white\">shared latent task space</strong>, where both the human and the agent maintain joint belief states that evolve with the interaction history. This enables proactive clarification, adaptive suggestions, and shared plan refinement. SIL leverages FMs for spatial perception and reasoning, together with a <strong class=\"text-white\">triplet-loss-trained neural encoder</strong> that grounds the FMs' outputs into task-specific latent representations. To support long-term stability as tasks evolve, SIL utilises <strong class=\"text-white\">episodic and semantic memory architectures</strong>, regularised via elastic weight consolidation to mitigate catastrophic forgetting. We evaluate SIL on simulated and real-world embodied tasks, including instruction following, information retrieval, query-oriented reasoning, and interactive dialogue, achieving a <strong class=\"text-white\">90.4% task completion rate</strong> and a <strong class=\"text-white\">belief alignment score of approximately 0.83</strong>, an absolute improvement of about <strong class=\"text-white\">20 percentage points over the best ablations.</strong>";
+  const el=document.getElementById('abstract-text');
+  let i=0;
+  function type(){if(i<text.length){el.innerHTML=text.slice(0,++i);if(i<text.length)el.classList.add('typing-cursor');else el.classList.remove('typing-cursor');requestAnimationFrame(()=>setTimeout(type,10))}else el.classList.remove('typing-cursor')}
+  type()
+}
+
+// ── Paradigm Toggle ──
+let isSIL=false;
+function toggleParadigm(){
+  isSIL=!isSIL;
+  const dot=document.getElementById('toggle-dot'),m=document.getElementById('paradigm-master'),s=document.getElementById('paradigm-sil'),tog=document.getElementById('paradigm-toggle');
+  tog.setAttribute('aria-checked',isSIL);
+  if(isSIL){
+    dot.style.transform='translateX(32px)';dot.className='w-6 h-6 bg-cyan-400 rounded-full absolute top-1 left-1 transition-all duration-300 shadow-lg shadow-cyan-500/30';
+    document.getElementById('label-master').className='text-sm font-medium text-gray-500 transition-colors';
+    document.getElementById('label-sil').className='text-sm font-medium text-cyan-400 transition-colors';
+    m.style.opacity='0';m.style.pointerEvents='none';s.style.opacity='1';s.style.pointerEvents='auto'
+  }else{
+    dot.style.transform='translateX(0)';dot.className='w-6 h-6 bg-red-400 rounded-full absolute top-1 left-1 transition-all duration-300 shadow-lg';
+    document.getElementById('label-master').className='text-sm font-medium text-red-400 transition-colors';
+    document.getElementById('label-sil').className='text-sm font-medium text-gray-500 transition-colors';
+    m.style.opacity='1';m.style.pointerEvents='auto';s.style.opacity='0';s.style.pointerEvents='none'
+  }
+}
+
+// ── Pipeline ──
+function selectPipeline(idx){
+  document.querySelectorAll('.pipeline-node').forEach((n,i)=>n.classList.toggle('active',i<=idx));
+  document.getElementById('pipe-title').textContent=pipeData[idx].t;
+  document.getElementById('pipe-desc').textContent=pipeData[idx].d
+}
+
+// ── Experiments ──
+function selectExp(idx){
+  document.querySelectorAll('.exp-card').forEach((c,i)=>{c.style.borderColor=i===idx?'rgba(34,211,238,.4)':'transparent'});
+  document.getElementById('exp-text').textContent=expData[idx]
+}
+
+// ── Ablation Chart ──
+function initAblButtons(){
+  const c=document.getElementById('abl-buttons');
+  Object.entries(ablData).forEach(([k,v])=>{
+    const b=document.createElement('button');
+    b.dataset.key=k;b.className='abl-btn text-xs px-3 py-1.5 rounded-lg border transition-all cursor-pointer';
+    b.textContent=v.label;b.onclick=()=>toggleAblation(k);
+    if(k==='full'){b.style.borderColor=v.color+'66';b.style.background=v.color+'15';b.style.color=v.color}
+    else{b.className+=' border-slate-600 bg-slate-800 text-gray-400'}
+    c.appendChild(b)
+  })
+}
+function toggleAblation(key){
+  stopAutoAblation();
+  if(key==='full')return;
+  activeAbl.has(key)?activeAbl.delete(key):activeAbl.add(key);
+  document.querySelectorAll('.abl-btn').forEach(b=>{
+    const k=b.dataset.key;
+    if(activeAbl.has(k)){b.style.borderColor=ablData[k].color+'66';b.style.background=ablData[k].color+'15';b.style.color=ablData[k].color}
+    else if(k!=='full'){b.style.borderColor='';b.style.background='';b.style.color='';b.className='abl-btn text-xs px-3 py-1.5 rounded-lg border border-slate-600 bg-slate-800 text-gray-400 transition-all cursor-pointer'}
+  });
+  renderAblChart();animateAblChart()
+}
+function renderAblChart(){
+  const chart=document.getElementById('ablation-chart'),labels=document.getElementById('ablation-labels'),legend=document.getElementById('abl-legend');
+  const active=[...activeAbl];
+  let html='',lhtml='',leghtml='';
+  domains.forEach(dom=>{
+    html+=`<div class="flex-1 flex items-end justify-center gap-0.5" style="height:100%">`;
+    active.forEach(key=>{
+      const v=ablData[key][dom],c=ablData[key].color;
+      const barW=Math.max(100/active.length-4,8);
+      html+=`<div class="chart-bar visible rounded-t relative group" data-height="${v}" style="width:${barW}%;height:0%;background:${c};min-width:4px"><div class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">${v}%</div></div>`;
+    });
+    html+='</div>';
+    lhtml+=`<div class="flex-1 text-center text-[10px] text-gray-500 font-mono">${dom}</div>`;
+  });
+  active.forEach(k=>{leghtml+=`<span class="flex items-center gap-1.5 text-[10px] text-gray-400"><span class="w-2.5 h-2.5 rounded-sm inline-block" style="background:${ablData[k].color}"></span>${ablData[k].label}</span>`});
+  chart.innerHTML=html;labels.innerHTML=lhtml;legend.innerHTML=leghtml
+}
+function animateAblChart(){
+  const bars=document.querySelectorAll('#ablation-chart .chart-bar');
+  bars.forEach(bar=>{bar.style.height='0%';requestAnimationFrame(()=>{requestAnimationFrame(()=>{bar.style.height=bar.dataset.height+'%'})})})
+}
+let ablAutoInterval=null;
+const ablKeys=Object.keys(ablData);
+let ablAutoIdx=0;
+function autoAblation(){
+  if(ablAutoInterval)return;
+  ablAutoIdx=1;stepAblation();
+  ablAutoInterval=setInterval(stepAblation,1500)
+}
+function stepAblation(){
+  activeAbl=new Set(['full',ablKeys[ablAutoIdx]]);
+  document.querySelectorAll('.abl-btn').forEach(b=>{
+    const k=b.dataset.key;
+    if(activeAbl.has(k)){b.style.borderColor=ablData[k].color+'66';b.style.background=ablData[k].color+'15';b.style.color=ablData[k].color}
+    else{b.style.borderColor='';b.style.background='';b.style.color=''}
+  });
+  renderAblChart();animateAblChart();
+  ablAutoIdx=(ablAutoIdx%( ablKeys.length-1))+1
+}
+function stopAutoAblation(){if(ablAutoInterval){clearInterval(ablAutoInterval);ablAutoInterval=null}}
+
+// ── Belief Chart ──
+let beliefAnim=null;
+function drawBeliefChart(){
+  const c=document.getElementById('belief-canvas'),ctx=c.getContext('2d');
+  const dpr=window.devicePixelRatio||1;
+  const w=c.offsetWidth,h=c.offsetHeight;
+  c.width=w*dpr;c.height=h*dpr;ctx.scale(dpr,dpr);
+  const pad={l:40,r:20,t:20,b:30},pw=w-pad.l-pad.r,ph=h-pad.t-pad.b,turns=20;
+
+  const curves=[
+    {label:'Full SIL',color:'#22d3ee',w:2.5,target:.83,pts:[.1,.25,.42,.55,.65,.72,.76,.78,.8,.81,.82,.82,.83,.83,.83,.83,.83,.83,.83,.83]},
+    {label:'w/o Co-Adapt',color:'#ef4444',w:1.5,target:.52,pts:[.1,.18,.24,.3,.34,.38,.4,.42,.45,.47,.48,.5,.51,.51,.52,.52,.52,.52,.52,.52]},
+    {label:'w/o EWC',color:'#f59e0b',w:1.5,target:.65,pts:[.1,.22,.35,.45,.52,.57,.6,.62,.63,.64,.64,.65,.65,.65,.65,.65,.65,.65,.65,.65]},
+    {label:'w/o Memory',color:'#64748b',w:1.5,target:.59,pts:[.1,.2,.3,.38,.44,.5,.53,.55,.57,.58,.58,.59,.59,.59,.59,.59,.59,.59,.59,.59]}
+  ];
+  let progress=0;
+  if(beliefAnim)cancelAnimationFrame(beliefAnim);
+  function draw(){
+    ctx.clearRect(0,0,w,h);
+    ctx.strokeStyle='#1e293b';ctx.lineWidth=.5;
+    for(let i=0;i<=4;i++){const y=pad.t+ph*(1-i/4);ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+pw,y);ctx.stroke();ctx.fillStyle='#475569';ctx.font='9px Inter';ctx.textAlign='right';ctx.fillText((i*.25).toFixed(2),pad.l-6,y+3)}
+    for(let i=0;i<=turns;i+=5){const x=pad.l+pw*(i/turns);ctx.beginPath();ctx.moveTo(x,pad.t);ctx.lineTo(x,pad.t+ph);ctx.stroke();ctx.fillStyle='#475569';ctx.textAlign='center';ctx.fillText(i,x,pad.t+ph+14)}
+    ctx.fillStyle='#475569';ctx.font='9px Inter';ctx.textAlign='center';ctx.fillText('Interaction Turn',pad.l+pw/2,h-4);
+    const n=Math.min(Math.floor(progress*turns),turns);
+    curves.forEach(curve=>{
+      ctx.beginPath();ctx.strokeStyle=curve.color;ctx.lineWidth=curve.w;ctx.lineJoin='round';ctx.lineCap='round';
+      for(let i=0;i<=n;i++){const x=pad.l+pw*(i/turns),y=pad.t+ph*(1-curve.pts[i]);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y)}
+      ctx.stroke();
+      if(n<turns&&n>=0){const x=pad.l+pw*(n/turns),y=pad.t+ph*(1-curve.pts[n]);ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fillStyle=curve.color;ctx.fill()}
+    });
+    if(progress<1){progress+=.012;beliefAnim=requestAnimationFrame(draw)}
+  }
+  draw()
+}
+function replayBeliefChart(){drawBeliefChart()}
+
+// ── Interactions ──
+let curInt=0;
+function initInts(){
+  const list=document.getElementById('interaction-list');
+  list.innerHTML=interactions.map((it,i)=>`<button onclick="selInt(${i})" class="interaction-item w-full text-left p-2.5 rounded-lg text-xs border border-transparent hover:bg-slate-800/50 transition-all ${i===0?'active':''}" id="ib-${i}"><span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-mono ${catCls[it.cat]} mr-1.5">${it.cat}</span><span class="text-gray-300">${it.t}</span></button>`).join('');
+  selInt(0,true)
+}
+function selInt(i,noScroll){
+  curInt=i;const it=interactions[i];
+  document.getElementById('int-id').textContent=`Int ${it.id}`;
+  document.getElementById('int-title').textContent=it.t;
+  document.getElementById('int-desc').textContent=`"${it.d}"`;
+  const vid=document.getElementById('int-video');
+  vid.src=it.video;vid.load();vid.play().catch(()=>{});
+  document.getElementById('int-counter').textContent=`${i+1}/${interactions.length}`;
+  document.getElementById('int-cat').className=`text-xs px-1.5 py-0.5 rounded font-mono ${catCls[it.cat]}`;
+  document.getElementById('int-cat').textContent=it.cat;
+  document.querySelectorAll('.interaction-item').forEach((b,j)=>b.classList.toggle('active',j===i));
+  if(!noScroll)document.getElementById(`ib-${i}`).scrollIntoView({behavior:'smooth',block:'nearest'})
+}
+function prevInt(){selInt((curInt-1+interactions.length)%interactions.length)}
+function nextInt(){selInt((curInt+1)%interactions.length)}
+
+// ── FAQ ──
+function initFAQ(){
+  const c=document.getElementById('faq-container');
+  c.innerHTML=faqData.map((f,i)=>`<div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden"><button onclick="toggleCollapse('faq-${i}')" class="w-full p-4 flex items-center justify-between hover:bg-slate-800/30 transition-colors text-left gap-3"><span class="font-medium text-sm">${f.q}</span><svg id="faq-${i}-icon" class="w-4 h-4 text-gray-500 transition-transform flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button><div id="faq-${i}" class="collapse-content"><div class="px-4 pb-4 text-gray-400 text-sm leading-relaxed">${f.a}</div></div></div>`).join('')
+}
+
+// ── Dynamic Tables ──
+function renderPerfTable(){
+  const tbody=document.getElementById('perf-tbody');
+  const cols=['EIF','MIIR','QOR','PDS','LPL'];
+  tbody.innerHTML=perfData.map(r=>{
+    const isCE=r.m.includes('CE');
+    const vals=cols.map(c=>r[c]);
+    const best=isCE?Math.min(...vals):Math.max(...vals);
+    return `<tr class="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+      <td class="p-3 text-gray-300 font-medium">${r.m}</td>
+      ${cols.map(c=>{
+        const isBest=r[c]===best;
+        return `<td class="p-3 text-center ${isBest?'text-cyan-400 font-semibold':'text-gray-400'}">${r[c].toFixed(2)}</td>`;
+      }).join('')}
+    </tr>`;
+  }).join('');
+}
+
+function renderAblTable(){
+  const tbody=document.getElementById('abl-tbody');
+  const fullTCR=90.4;
+  const maxTCR=Math.max(...ablTableData.map(x=>x.TCR));
+  const validCE=ablTableData.filter(x=>x.CE!==null).map(x=>x.CE);
+  const minCE=Math.min(...validCE);
+  const validBA=ablTableData.filter(x=>x.BA!==null).map(x=>x.BA);
+  const maxBA=Math.max(...validBA);
+  tbody.innerHTML=ablTableData.map(r=>{
+    const d=r.TCR-fullTCR;
+    const rowCls=r.best?'bg-cyan-500/5 border-l-2 border-cyan-500':'border-l-2 border-transparent';
+    return `<tr class="${rowCls} border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+      <td class="p-3 ${r.best?'text-cyan-400 font-semibold':'text-gray-300'}">${r.m}</td>
+      <td class="p-3 text-center ${r.TCR===maxTCR?'text-cyan-400 font-semibold':'text-gray-400'}">${r.TCR.toFixed(1)}</td>
+      <td class="p-3 text-center ${r.CE===null?'text-gray-600':r.CE===minCE?'text-cyan-400 font-semibold':'text-gray-400'}">${r.CE===null?'–':r.CE.toFixed(2)}</td>
+      <td class="p-3 text-center ${r.BA===null?'text-gray-600':r.BA===maxBA?'text-cyan-400 font-semibold':'text-gray-400'}">${r.BA===null?'–':r.BA.toFixed(2)}</td>
+      <td class="p-3 text-center ${d>0?'text-cyan-400':d===0?'text-gray-500':'text-red-400'}">${d===0?'—':(d>0?'+':'')+d.toFixed(1)}</td>
+    </tr>`;
+  }).join('');
+}
+
+const sortStates={};
+function sortTable(tableId,col,dataKey){
+  const key=dataKey+col;
+  sortStates[key]=sortStates[key]==='asc'?'desc':'asc';
+  const dir=sortStates[key];
+  if(dataKey==='perf'){
+    const cols=['m','EIF','MIIR','QOR','PDS','LPL'];
+    if(col===0)perfData.sort((a,b)=>dir==='asc'?a.m.localeCompare(b.m):b.m.localeCompare(a.m));
+    else{const c=cols[col];perfData.sort((a,b)=>dir==='asc'?a[c]-b[c]:b[c]-a[c])}
+    renderPerfTable();
+  }else{
+    const cols=['m','TCR','CE','BA'];
+    if(col===0)ablTableData.sort((a,b)=>dir==='asc'?a.m.localeCompare(b.m):b.m.localeCompare(a.m));
+    else{const c=cols[col];ablTableData.sort((a,b)=>{
+      const va=a[c]===null?-999:a[c],vb=b[c]===null?-999:b[c];
+      return dir==='asc'?va-vb:vb-va;
+    })}
+    renderAblTable();
+  }
+}
+
+// ── Utils ──
+function openLightbox(s){document.getElementById('lightbox-img').src=s;document.getElementById('lightbox').classList.add('active');document.body.style.overflow='hidden'}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('active');document.body.style.overflow=''}
+function toggleCollapse(id){const el=document.getElementById(id),ic=document.getElementById(id+'-icon');el.classList.toggle('open');if(ic)ic.style.transform=el.classList.contains('open')?'rotate(180deg)':'rotate(0)'}
+function showTab(id){document.querySelectorAll('.tab-content').forEach(t=>t.classList.add('hidden'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.remove('hidden');document.getElementById('btn-'+id).classList.add('active');if(id==='tab-belief')setTimeout(drawBeliefChart,100)}
+function copyCite(){navigator.clipboard.writeText(document.getElementById('cite-text').textContent).then(()=>{const b=document.getElementById('copyBtn');b.textContent='Copied!';setTimeout(()=>b.textContent='Copy',2000)})}
+
+// Mobile menu
+const mobBtn=document.getElementById('mobBtn'),mobMenu=document.getElementById('mobMenu');
+mobBtn.addEventListener('click',()=>{const open=mobMenu.classList.toggle('open');mobBtn.setAttribute('aria-expanded',open)});
+document.querySelectorAll('#mobMenu a').forEach(l=>l.addEventListener('click',()=>{mobMenu.classList.remove('open');mobBtn.setAttribute('aria-expanded','false')}));
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLightbox();if(e.key==='ArrowLeft')prevInt();if(e.key==='ArrowRight')nextInt()});
+
+// ── Scroll Animations ──
+function initScrollAnim(){
+  const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target)}})},{threshold:.1,rootMargin:'0px 0px -40px 0px'});
+  document.querySelectorAll('.fade-up').forEach(el=>obs.observe(el))
+}
+
+// ── Stat Animation ──
+function animateStats(){
+  const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){
+    const box=e.target,target=parseFloat(box.dataset.target),dec=parseInt(box.dataset.decimals)||0;
+    const prefix=box.dataset.prefix||'',suffix=box.dataset.suffix||'';
+    const numEl=box.querySelector('.stat-number'),bar=box.querySelector('.stat-bar-fill');
+    const pct=target>1?target:target*100;
+    let start=null;const dur=1200;
+    function anim(ts){
+      if(!start)start=ts;const p=Math.min((ts-start)/dur,1);
+      const eased=1-Math.pow(1-p,3);
+      const cur=eased*target;
+      numEl.textContent=prefix+cur.toFixed(dec)+suffix;
+      if(bar)bar.style.width=pct*eased+'%';
+      if(p<1)requestAnimationFrame(anim);else{numEl.textContent=prefix+target.toFixed(dec)+suffix;if(bar)bar.style.width=pct+'%'}
+    }
+    requestAnimationFrame(anim);obs.unobserve(box)
+  }})},{threshold:.5});
+  document.querySelectorAll('.stat-box').forEach(b=>obs.observe(b))
+}
+
+let resizeTimer;
+window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{if(!document.getElementById('tab-belief').classList.contains('hidden'))drawBeliefChart()},200)});
+
+// ── Init ──
+document.addEventListener('DOMContentLoaded',()=>{
+  initParticles();
+  setTimeout(typeAbstract,600);
+  initInts();
+  initAblButtons();
+  renderAblChart();
+  initFAQ();
+  initScrollAnim();
+  animateStats();
+  renderPerfTable();
+  renderAblTable();
+  // Set initial pipeline description
+  document.getElementById('pipe-desc').textContent=pipeData[0].d;
+  document.getElementById('exp-text').textContent=expData[0];
+  const ablObs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){autoAblation();ablObs.unobserve(e.target)}})},{threshold:.3});
+  ablObs.observe(document.getElementById('ablation-chart'));
+  setTimeout(()=>document.querySelectorAll('.fade-up').forEach(el=>{if(el.getBoundingClientRect().top<window.innerHeight)el.classList.add('visible')}),100)
+});
+</script>
+</body>
+</html>

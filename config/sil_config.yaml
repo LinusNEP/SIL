@@ -1,0 +1,518 @@
+# =============================================================================
+# SIL — Symbiotic Interactive Learning
+#
+# Reference:
+#   Nwankwo et al., "SIL: Symbiotic Interactive Learning for Language-
+#   Conditioned Human-Agent Co-Adaptation."  https://linusnep.github.io/SIL/
+# =============================================================================
+
+# -------------------------------------
+# SIL core
+# -------------------------------------
+sil:
+  enable: true                         
+  memory_directory: "/tmp/sil_memory"  
+  model_directory: "/tmp/sil_models"    
+  auto_save_memory: true              
+  memory_save_interval: 300            
+  allow_memory_clear: false            
+  pre_execution_confirmation: true     
+  post_execution_suggestions: true      
+  auto_describe_on_arrival: false     
+
+  # ---- Interaction management ----
+  clarification_threshold: 0.3         
+  proactive_suggestions_enabled: true
+  max_clarification_attempts: 1
+
+  # -------------------------------------------
+  # Shared latent task space & neural encoder
+  # -------------------------------------------
+  encoder:
+    input_dim: 768                     
+    hidden_dims: [512, 384]             
+    latent_dim: 256                    
+    dropout: 0.2                        
+    learning_rate: 0.001              
+    sentence_encoder_model: "all-mpnet-base-v2"
+
+  # -------------------------------------------
+  # Co-adaptation dynamics
+  # -------------------------------------------
+  co_adaptation:
+    enable: true
+    belief_update_eta: [0.6, 0.3, 0.1, 0.7, 0.2, 0.1]
+    alpha_agent: 0.1                    
+    alpha_human: 0.05                   
+    influence_init_std: 0.01            
+    influence_matrix_lr: 0.01         
+    confidence_blend_agent: 0.7        
+    confidence_blend_human: 0.8        
+
+  # -------------------------------------------
+  # Belief initialisation
+  # -------------------------------------------
+  belief_init:
+    human_confidence: 0.8             
+    agent_confidence: 0.5               
+    init_noise_std: 0.1                
+    intent_distribution_dim: 10     
+
+  # ------------------------------------------
+  # Belief alignment / clarification protocol
+  # -------------------------------------------
+  alignment:
+    misalignment_threshold: 0.6       
+    uncertainty_source_threshold: 0.3  
+
+  # ---------------------------------------------
+  # Triplet contrastive training + EWC safeguard  
+  # ---------------------------------------------
+  training:
+    triplet_margin: 1.0              
+    ewc_lambda: 2000                    
+    positive_similarity_threshold: 0.7  
+    negative_similarity_threshold: 0.3  
+    negative_success_threshold: 0.4     
+
+  # -----------------------------------------
+  # Uncertainty-aware language understanding  
+  # -----------------------------------------
+  uncertainty:
+    enable_estimation: true
+    ensemble_size: 3                
+    uncertainty_threshold: 0.3       
+    temperature_variation: 0.1         
+    alpha_u: 0.4                       
+    beta_u: 0.2                       
+    confidence_baseline: 0.5
+    high_confidence_weight: 0.15
+    medium_confidence_weight: 0.05
+    low_confidence_weight: 0.15
+    high_confidence_keywords:
+      ["clearly", "definitely", "certainly", "obviously", "precisely",
+       "exactly", "specifically", "without doubt", "undoubtedly"]
+    medium_confidence_keywords:
+      ["probably", "likely", "seems", "appears", "should",
+       "typically", "generally", "usually", "mostly"]
+    low_confidence_keywords:
+      ["maybe", "perhaps", "might", "possibly", "unclear",
+       "unsure", "uncertain", "not sure", "hard to say"]
+    clarity_baseline: 0.8              
+    ambiguous_penalty: 0.15            
+    ambiguous_words:
+      ["it", "that", "there", "thing", "something", "somewhere", "stuff"]
+    known_locations:                   
+      ["kitchen", "living room", "bedroom", "bathroom", "office", "lab",
+       "corridor", "workshop", "elevator"]
+    clear_commands:                    
+      stop: 1.0
+      help: 0.95
+      status: 0.95
+      hello: 0.9
+      hi: 0.9
+      "move forward": 0.95
+      "move backward": 0.95
+      "turn left": 0.95
+      "turn right": 0.95
+      "turn around": 0.95
+      "go forward": 0.95
+      "go back": 0.95
+      rotate: 0.9
+      "send image": 0.95
+      "take photo": 0.95
+      "describe surroundings": 0.95
+      "look around": 0.9
+
+  # ------------------------------
+  # Continual-learning safeguard
+  # ------------------------------
+  continual_learning:
+    enable: true
+    replay_buffer_capacity: 10000    
+    replay_batch_size: 32              
+    task_shift_window: 10              
+    task_shift_drop_threshold: 0.3     
+    checkpoint_keep_recent: 1000       
+
+  # ------------------------------------
+  # Skill primitives 
+  # -------------------------------------
+  skills:
+    enabled: []             
+    disabled: []                       
+
+  # --------------------------
+  # Task follow-up messages 
+  # --------------------------
+  follow_up:
+    enabled: true                     
+    num_suggestions: 2               
+    max_sentences: 2                   
+    use_emojis: false                  
+    avoid_self_praise: true             
+    tone: "natural"                     
+
+  # ------------------------------------
+  # LLM reasoning / temperature presets
+  # -------------------------------------
+  use_llm_reasoning: true
+  llm_temperature_variation: true
+  temperature_settings:
+    navigation: 0.5
+    conversation: 0.8
+    creative_tasks: 0.7
+    safety_critical: 0.1
+    default: 0.3
+
+  response_style:
+    conversational: true
+    include_confirmation: true
+    explain_actions: true
+    personality: "helpful"    
+    verbosity: "balanced"         
+
+  action_generation:
+    max_actions_per_request: 25
+    default_distances:
+      forward: 1.0                  
+      backward: 1.0
+    default_angles:
+      turn: 90.0                     
+      rotate: 360.0
+    default_circle_radius: 0.5        
+    allow_creative_interpretation: true
+
+  conversation:
+    acknowledge_requests: true
+    provide_status_updates: true
+    offer_alternatives: true
+    ask_for_clarification: true
+
+  adaptive_behavior:
+    learn_from_corrections: true
+    remember_preferences: true
+    adapt_conversation_style: true
+
+# ------------------------------
+# Episodic / semantic memory  
+# ------------------------------
+memory:
+  max_episodic_memory: 20000      
+  semantic_update_threshold: 0.8      
+  episodic_retention_days: 30           
+  max_semantic_patterns_per_type: 50   
+  max_retrieval_candidates: 200        
+  retention_success_threshold: 0.9     
+  retention_alignment_threshold: 0.8   
+  co_adaptation_min_episodes: 10        
+  co_adaptation_improvement: 0.2        
+
+  # Embedding model for memory similarity
+  embedding_model: "paraphrase-MiniLM-L6-v2"
+
+  # Belief-aware retrieval 
+  retrieval:
+    semantic_weight: 0.6            
+    belief_weight: 0.4                
+    softmax_temperature: 0.1           
+    max_episodes: 5                    
+
+  # Human preference model
+  human_model:
+    learning_rate: 0.1                 
+    confidence_threshold: 0.7
+    communication_style_tracking: true
+    default_adaptation_responsiveness: 0.5
+    formality_indicators: ["please", "could you", "would you", "thank you"]
+    specificity_indicators: ["exactly", "precisely", "specifically", "at coordinates"]
+
+# ----------------------------------
+# Interaction manager
+# -----------------------------------
+interaction:
+  bidirectional_learning: true
+  shared_task_space_enabled: true
+  adaptation_enabled: true
+  plan_step_delay: 0.5                  
+  conversation_history_context: 3      
+
+  suggestions:
+    max_suggestions_per_interaction: 3
+    suggestion_confidence_threshold: 0.6
+    context_aware_suggestions: true
+
+  memory_integration:
+    use_memory_context: true
+    max_memory_episodes: 5
+    adaptive_prompting: true
+
+# -------------------------------------
+# Data logging & metrics
+# -------------------------------------
+logging:
+  enhanced_logging: true
+  log_file: "sil_robot_log.csv"
+  log_interaction_details: true
+  metrics:
+    track_confidence_scores: true
+    track_adaptation_events: true
+    track_human_satisfaction: true
+    metrics_window_size: 100
+    recent_window_size: 20          
+  status_publish_rate_hz: 0.1           
+
+# -------------------------------------
+# Performance & safety
+# -------------------------------------
+performance:
+  parallel_processing: false
+  max_processing_time: 30
+  fallback_to_original_tcc: true
+
+safety:
+  emergency_stop_enabled: true
+  safety_confidence_threshold: 0.9
+  require_confirmation_for_risky_actions: true
+  emergency_stop_keywords: ["stop", "halt", "cancel"]
+
+# -------------------------------------------
+# Evaluation
+# --------------------------------------------
+evaluation:
+  enable_evaluation_mode: false
+  baseline_comparison_enabled: false
+  collect_human_feedback: true
+  ab_testing:
+    enabled: false
+    test_ratio: 0.5
+
+# --------------------------------------
+# ROS communication topics
+# ---------------------------------------
+topics:
+  camera_color: "/rgb/image"
+  camera_depth: "/depth/image"
+  camera_info: "/rgb/camera_info"
+  cmd_vel: "/cmd_vel"
+  odom: "/odom"
+  move_base_action: "move_base"
+  emergency_stop: "/emergency_stop"
+
+  # Language / interaction I/O
+  llm_input: "/llm_input"
+  llm_output: "/llm_output"
+  llm_image_output: "/llm_image_output"
+  tts_text: "/tts_text"
+  sil_tts: "/sil_tts"
+
+  # SIL-specific topics
+  sil_response: "/sil_response"
+  sil_clarification: "/sil_clarification"
+  sil_suggestions: "/sil_suggestions"
+  sil_feedback: "/sil_feedback"
+  sil_command: "/sil_command"
+  sil_status: "/sil_status"
+  sil_metrics: "/sil_metrics"
+  sil_beliefs: "/sil_beliefs"
+  sil_adaptation: "/sil_adaptation"
+
+# -------------------------------
+# Foundation models
+# ------------------------------
+models:
+  # ---- LLM backbone ----
+  llm_provider: "openai"          
+  llm_name: "gpt-4o"               
+  llm_max_tokens: 500
+  llm_temperature: 0.5
+  llm_endpoint: ""                  
+  llm_timeout_seconds: 30
+  llm_max_retries: 2                 
+  llm_retry_base_delay: 1.0
+  llm_api_key: ""                      
+  system_message_style: "conversational_assistant"
+
+  # ---- Embedding model for memory similarity ----
+  embedding_model: "paraphrase-MiniLM-L6-v2"
+
+  # ---- Vision-language perception ----
+  clip_model: "openai/clip-vit-base-patch32"   
+  sam_checkpoint: "models/sam_vit_b_01ec64.pth" 
+  sam_model_type: "vit_b"                      
+  midas_model: "MiDaS_small"                   
+  midas_transform: "small_transform"
+
+# -------------------------------------
+# Robot motion limits
+# -------------------------------------
+speeds:
+  default_linear_speed: 0.3            
+  default_angular_speed: 0.5            
+  maximum_speed: 1.0                   
+
+# -----------------------------------------
+# Action execution
+# -----------------------------------------
+execution:
+  action_delay: 0.5                    
+  completion_message_delay: 1.0
+  enable_progress_updates: true
+  progress_update_interval: 30.0       
+  control_rate_hz: 10                  
+  navigation_complexity: 1.5          
+  default_complexity: 1.0               
+  move_base_timeout: 5.0                
+  goal_frame: "map"                     
+  navigation_timeout: 0.0              
+  planner_reconfigure_ns: "/move_base/DWAPlannerROS"  
+  planner_speed_param: "max_vel_x"      
+# --------------------------------
+# Perception 
+# --------------------------------
+  backend: "clip_sam"
+  open_vocabulary: true                 
+  use_command_vocabulary: true         
+  vocabulary_prompts:
+    ["person", "chair", "table", "bottle", "cup", "book", "laptop",
+     "cell phone", "remote", "backpack", "door", "monitor", "keyboard"]
+
+  open_vocab:
+    yolo_world_weights: "yolov8s-worldv2.pt"
+    yoloe_weights: "yoloe-11s-seg.pt"
+    sam3_weights: "sam3.pt"
+
+  camera_fx: 1396.80                    
+  camera_fy: 1396.80                   
+  camera_cx: 960.5                      
+  camera_cy: 960.5                      
+  base_frame: "base_link"
+  camera_frame: "camera_rgbd_frame"
+
+  detection_confidence_threshold: 0.2
+  color_confidence_threshold: 0.15
+  energy_threshold: 0.35                
+  mask_quality: 0.5                    
+  sam_mask_score_threshold: 0.4        
+  depth_valid_radius: 5                 
+  depth_stale_timeout: 2.0           
+  image_sync_slop: 0.1                 
+
+  kalman_process_noise: 0.0001
+  kalman_measurement_noise: 0.1
+  kalman_initial_velocity_covariance: 1000.0
+
+  default_class_labels:
+    ["person", "chair", "table", "bottle", "cup",
+     "book", "laptop", "phone", "remote", "bag"]
+  color_labels:
+    ["red", "blue", "green", "yellow", "black", "white", "brown", "gray"]
+
+# ---------------------------------------
+# Chat GUI
+# ---------------------------------------
+  icons_directory: ""                   
+
+# -------------------------------------
+# Speech I/O (chat GUI)
+# --------------------------------------
+speech:
+  tts_engine: "gtts"                  
+  tts_rate_normal: 180                 
+  tts_rate_clarification: 150           
+  audio_player: "mpg123 -q"             
+
+# -----------------------------------
+# Destination resolution
+# -----------------------------------
+destination_resolver:
+  fuzzy_cutoff: 80                      
+  embedding_cutoff: 0.55               
+
+# -----------------------------------
+# Destinations
+# -----------------------------------
+destinations:
+  conference_office:
+    display_name: "Conference Office"
+    aliases: ["conference", "meeting room", "conf. room", "home", "origin", "starting point"]
+    coords: {x: 0.0, y: 0.0, z: 0.0}
+  server_room:
+    display_name: "Server Room"
+    aliases: ["server", "server-room", "it room", "servers"]
+    coords: {x: 6.41663, y: 1.83810, z: 0.0}
+  technicians_office:
+    display_name: "Technicians Office"
+    aliases: ["technicians", "tech office"]
+    coords: {x: 6.41663, y: 1.83810, z: 0.0}
+  corridor:
+    display_name: "Corridor"
+    aliases: ["hallway", "passage"]
+    coords: {x: -2.9519989, y: -4.6135330, z: 0.0}
+  secretary_office:
+    display_name: "Secretary Office"
+    aliases: ["secretary", "admin office"]
+    coords: {x: -7.4880, y: -11.7599, z: 0.0}
+  professor_office:
+    display_name: "Professor Office"
+    aliases: ["professor", "prof office"]
+    coords: {x: -1.8086, y: -12.5759, z: 0.0}
+  postdoc_office:
+    display_name: "Postdoc's Office"
+    aliases: ["postdoc", "postdoc office"]
+    coords: {x: -12.3221, y: -10.2211, z: 0.0}
+  phd_office:
+    display_name: "PhD's Office"
+    aliases: ["phd office", "doctoral researchers' office", "phd students office"]
+    coords: {x: -18.2438, y: -11.7617, z: 0.0}
+  printing_room:
+    display_name: "Printing Room"
+    aliases: ["print room", "printing"]
+    coords: {x: -15.81148, y: -4.734699, z: 0.0}
+  workshop:
+    display_name: "Workshop"
+    aliases: ["workshop"]
+    coords: {x: -12.16810, y: 1.61361, z: 0.0}
+  students_office:
+    display_name: "Students Office"
+    aliases: ["students", "student office"]
+    coords: {x: -18.3597, y: 1.2639, z: 0.0}
+  lab:
+    display_name: "Robotics Lab"
+    aliases: ["Lab", "laboratory", "robotics lab"]
+    coords: {x: -8.2274, y: 2.0348, z: 0.0}
+  kitchen:
+    display_name: "Kitchen"
+    aliases: ["kitchen"]
+    coords: {x: 5.3120069, y: -13.078762, z: 0.0}
+  elevator:
+    display_name: "Elevator"
+    aliases: ["elevator"]
+    coords: {x: 11.79615, y: -11.28947, z: 0.0}
+  toilet:
+    display_name: "Toilet"
+    aliases: ["restroom", "bathroom"]
+    coords: {x: 14.8095, y: -2.67490, z: 0.0}
+  tree:
+    display_name: "Tree"
+    aliases: ["tree"]
+    coords: {x: 14.35371, y: -1.61223, z: 0.0}
+  living_room:
+    display_name: "Living Room"
+    aliases: ["lounge", "sitting area", "family room"]
+    coords: {x: 1.0, y: 2.5, z: 0.0}
+  bedroom:
+    display_name: "Bedroom"
+    aliases: ["sleeping area", "master bedroom"]
+    coords: {x: 8.0, y: 5.0, z: 0.0}
+
+# ----------------------------
+# Development
+# -----------------------------
+debug:
+  verbose_logging: false
+  save_debug_images: false
+  save_debug_masks: false              
+  save_audio: false
+  log_memory_operations: false
+  visualization_enabled: false
