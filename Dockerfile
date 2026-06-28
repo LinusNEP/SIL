@@ -1,9 +1,8 @@
-# =============================================================================
+# =====================================================================
 # SIL — Symbiotic Interactive Learning
-#
 # Build:  docker build -t sil:latest .
 # Run:    see docker-compose.yml (handles GUI/X11, GPU, and devices)
-# =============================================================================
+# =====================================================================
 FROM ros:noetic-robot
 
 ENV DEBIAN_FRONTEND=noninteractive \
