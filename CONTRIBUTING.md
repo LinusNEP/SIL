@@ -1,7 +1,6 @@
 # Contributing to SIL
 
-Thanks for your interest in improving SIL! This document explains how to get a
-development environment running and the conventions we follow.
+Thank you for your interest in improving SIL! This document explains how to get a development environment running and the conventions we follow.
 
 ## Development setup
 
