@@ -12,7 +12,6 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
 )
 
-# Install the Python module under src/sil_ros via setup.py
 catkin_python_setup()
 
 catkin_package(
@@ -23,14 +22,12 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-# Executable Python scripts
 catkin_install_python(PROGRAMS
   scripts/sil_main.py
   scripts/chatGUI_SR.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-# Resource directories
 install(DIRECTORY config launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
