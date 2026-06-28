@@ -7,6 +7,7 @@
 
   <!-- SIL Robot Controller -->
   <node name="sil_robot_controller" pkg="sil_ros" type="sil_main.py" output="screen">
+
     <!-- API key  -->
     <env name="OPENAI_API_KEY" value="$(optenv OPENAI_API_KEY)" />
   </node>
