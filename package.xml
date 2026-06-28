@@ -3,10 +3,8 @@
   <name>sil_ros</name>
   <version>1.0.0</version>
   <description>
-    SIL — Symbiotic Interactive Learning for Language-Conditioned Human-Agent
-    Co-Adaptation. A bidirectional co-adaptation framework that grounds
-    foundation-model reasoning into a shared latent task space with episodic /
-    semantic memory and an elastic-weight-consolidation safeguard.
+    SIL — Symbiotic Interactive Learning for Language-Conditioned Human-Agent Co-Adaptation. A bidirectional co-adaptation framework that grounds
+    foundation-model reasoning into a shared latent task space with episodic/semantic memory and an elastic-weight-consolidation safeguard.
   </description>
 
   <maintainer email="linus.nwankwo@unileoben.ac.at">Linus Nwankwo</maintainer>
