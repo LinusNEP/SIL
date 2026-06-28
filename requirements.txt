@@ -21,7 +21,6 @@ filterpy>=1.4.5
 timm>=0.6                    
 
 # --- Open-vocabulary detection backends (optional) ---
-# Selected via perception/backend in sil_config.yaml.
 #   yolo_world / yoloe : pip install ultralytics
 #   sam3               : see https://github.com/facebookresearch/sam3
 ultralytics>=8.3           
