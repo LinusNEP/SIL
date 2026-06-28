@@ -6,7 +6,7 @@
 #   export OPENAI_API_KEY=sk-...       # or another provider's key
 #   docker compose up --build
 #
-# Notes
+# Notes:
 #  * GUI: the chat window (Tkinter) is forwarded via X11 (DISPLAY + /tmp/.X11-unix).
 #  * GPU: the `deploy.resources` block requests an NVIDIA GPU for torch/SAM/CLIP/
 #    YOLO. Requires the NVIDIA Container Toolkit. Remove that block to run on CPU.
