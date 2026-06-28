@@ -5,5 +5,4 @@ setup_args = generate_distutils_setup(
     packages=["sil_ros"],
     package_dir={"": "src"},
 )
-
 setup(**setup_args)
