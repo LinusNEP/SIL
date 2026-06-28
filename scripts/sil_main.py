@@ -44,13 +44,11 @@ class ContinualLearningSafeguard:
     def detect_task_shift(self, current_performance: Dict, history: List) -> bool:
         if len(history) < self.task_shift_window:
             return False
-
         recent_avg = np.mean(history[-self.task_shift_window:])
         current = current_performance.get('success_rate', 0)
         if recent_avg - current > self.task_shift_drop_threshold:
             rospy.loginfo("[ContinualLearning] Task shift detected")
             return True
-
         return False
     
     def protect_knowledge(self, model=None, data=None):
@@ -70,7 +68,6 @@ class ContinualLearningSafeguard:
             'performances': self.task_performances,
             'replay_buffer': replay_sample 
         }
-        
         path = os.path.join(self.save_dir, f"checkpoint_task_{self.current_task_id}.pkl")
         with open(path, 'wb') as f:
             pickle.dump(checkpoint, f)
@@ -88,14 +85,12 @@ class ContinualLearningSafeguard:
                 fisher[param_name] = grad_sum / len(gradients)
             else:
                 fisher[param_name] = np.zeros_like(model_params[param_name])
-        
         return fisher
     
     def ewc_loss(self, current_params: Dict, importance: float = None) -> float:
         if importance is None:
             importance = self.ewc_lambda
         loss = 0.0
-        
         for task_id, fisher in self.fisher_matrices.items():
             if task_id in self.optimal_params:
                 for param_name in fisher:
@@ -121,7 +116,6 @@ class ContinualLearningSafeguard:
             batch_size = self.replay_batch_size
         if len(self.replay_buffer) < batch_size:
             return list(self.replay_buffer)
-        
         indices = np.random.choice(len(self.replay_buffer), batch_size, replace=False)
         return [self.replay_buffer[i] for i in indices]
 
@@ -131,7 +125,6 @@ class MutualAdaptationTracker:
         self.human_trajectory = []
         self.agent_trajectory = []
         self.interaction_outcomes = []
-        
         self.metrics = {
             'human_learning_rate': 0.0,
             'agent_learning_rate': 0.0,
@@ -163,7 +156,6 @@ class MutualAdaptationTracker:
         h_curr = self.human_trajectory[-1]['embedding']
         h_prev = self.human_trajectory[-2]['embedding']
         self.metrics['human_learning_rate'] = np.linalg.norm(h_curr - h_prev)
-        
         if len(self.agent_trajectory) >= 2:
             a_curr = self.agent_trajectory[-1]['embedding']
             a_prev = self.agent_trajectory[-2]['embedding']
@@ -265,8 +257,7 @@ class EnhancedRobotController:
             self._start_memory_autosave()
         signal.signal(signal.SIGINT, self._signal_handler)
         signal.signal(signal.SIGTERM, self._signal_handler)
-        
-        rospy.loginfo("[SIL] Robot Controller initialized with full co-adaptation")
+        rospy.loginfo("[SIL] Robot Controller initialised with full co-adaptation")
     
     def _setup_communication(self):
         self.response_publisher = rospy.Publisher(
@@ -341,7 +332,6 @@ class EnhancedRobotController:
     
     def handle_command(self, msg):
         command = msg.data.strip()
-        
         if command == "get_metrics":
             self._publish_metrics()
         elif command == "save_memory":
@@ -351,7 +341,6 @@ class EnhancedRobotController:
     
     def _track_performance(self, input_text: str, result: Dict):
         success = result.get('result', {}).get('success', False)
-        
         self.performance_history.append(1.0 if success else 0.0)
         if len(self.performance_history) > 1000:
             self.performance_history.pop(0)
@@ -367,7 +356,6 @@ class EnhancedRobotController:
     def _get_recent_performance(self) -> Dict:
         if not self.performance_history:
             return {'success_rate': 0.5, 'sample_size': 0}
-        
         recent = self.performance_history[-self.recent_window:]
         return {
             'success_rate': np.mean(recent),
@@ -433,7 +421,6 @@ class EnhancedRobotController:
         }
         api_key_env_var = api_key_mapping.get(llm_provider_name)
         self.api_key_value = None
-        
         if api_key_env_var:
             if llm_api_key_from_config and str(llm_api_key_from_config).strip():
                 self.api_key_value = llm_api_key_from_config
