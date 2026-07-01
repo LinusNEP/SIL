@@ -11,6 +11,8 @@ from sil_ros.action_executor import ActionExecutor
 from sil_ros.data_logger import DataLogger, LogEntry
 from sil_ros.memory_module import EpisodicSemanticMemory
 from sil_ros.interaction_manager import SymbioticInteractionManager
+from sil_ros.model_io import save_encoder
+from sil_ros.model_io import load_encoder
 from datetime import datetime
 from typing import Dict, List
 import threading
@@ -28,7 +30,11 @@ class ContinualLearningSafeguard:
         self.config = config or SILConfig.load()
         cl = self.config.continual_learning
         self.save_dir = save_dir if save_dir is not None else \
-            rospy.get_param("sil/model_directory", "/tmp/sil_models")
+            rospy.get_param("sil/model_directory", "models")
+        if not os.path.isabs(self.save_dir):
+            import rospkg
+            self.save_dir = os.path.join(
+                rospkg.RosPack().get_path('sil_ros'), self.save_dir)
         os.makedirs(self.save_dir, exist_ok=True)
         self.fisher_matrices = {}
         self.optimal_params = {}
@@ -68,16 +74,15 @@ class ContinualLearningSafeguard:
             'performances': self.task_performances,
             'replay_buffer': replay_sample 
         }
+        
         path = os.path.join(self.save_dir, f"checkpoint_task_{self.current_task_id}.pkl")
         with open(path, 'wb') as f:
             pickle.dump(checkpoint, f)
 
     def compute_fisher_information(self, model_params: Dict, gradients: List):
         fisher = {}
-        
         for param_name in model_params:
             if len(gradients) > 0:
-                # Fisher = E[gradient^2]
                 grad_sum = np.zeros_like(model_params[param_name])
                 for grad in gradients:
                     if param_name in grad:
@@ -116,8 +121,42 @@ class ContinualLearningSafeguard:
             batch_size = self.replay_batch_size
         if len(self.replay_buffer) < batch_size:
             return list(self.replay_buffer)
+        
         indices = np.random.choice(len(self.replay_buffer), batch_size, replace=False)
         return [self.replay_buffer[i] for i in indices]
+    
+    def save_model_weights(self, encoder, path: str = None):
+        path = path or os.path.join(self.save_dir, "sil_encoder.pt")
+        save_encoder(encoder, path, metadata={
+            "task_id": self.current_task_id,
+            "num_tasks": len(self.fisher_matrices)
+        })
+
+    def load_model_weights(self, encoder, path: str = None):
+        path = path or os.path.join(self.save_dir, "sil_encoder.pt")
+        return load_encoder(encoder, path)
+    
+    def save_ewc_state(self, path: str = None):
+        path = path or os.path.join(self.save_dir, "ewc_state.pt")
+        torch.save({
+            "fisher_matrices": self.fisher_matrices,
+            "optimal_params": self.optimal_params,
+            "current_task_id": self.current_task_id,
+            "task_performances": self.task_performances,
+        }, path)
+        rospy.loginfo(f"[ContinualLearning] EWC state saved: {path}")
+
+    def load_ewc_state(self, path: str = None):
+        path = path or os.path.join(self.save_dir, "ewc_state.pt")
+        if not os.path.exists(path):
+            return False
+        state = torch.load(path, map_location="cpu")
+        self.fisher_matrices = state["fisher_matrices"]
+        self.optimal_params = state["optimal_params"]
+        self.current_task_id = state["current_task_id"]
+        self.task_performances = state["task_performances"]
+        rospy.loginfo(f"[ContinualLearning] EWC state loaded: {path}")
+        return True
 
 # ============= MUTUAL ADAPTATION TRACKER =============
 class MutualAdaptationTracker: 
@@ -146,7 +185,6 @@ class MutualAdaptationTracker:
                 'confidence': agent_belief.confidence,
                 'timestamp': datetime.now()
             })
-        
         self.interaction_outcomes.append(outcome)
         self._compute_metrics()
     
@@ -208,7 +246,7 @@ class SILDataLogger(DataLogger):
 # ============= MAIN CONTROLLER =============
 class EnhancedRobotController:
     def __init__(self):
-        rospy.init_node('sil_robot_controller')
+        rospy.init_node('sil_robot_controller', disable_signals=True)
         self.config = SILConfig.load()
         self.data_logger = SILDataLogger()
         self._setup_llm_configuration()
@@ -245,6 +283,13 @@ class EnhancedRobotController:
         self.interaction_manager.data_logger = self.data_logger
         self.memory_module.shared_task_space = self.interaction_manager.shared_task_space
         self.continual_learning = ContinualLearningSafeguard(config=self.config)
+        encoder_ckpt = os.path.join(self.continual_learning.save_dir, "sil_encoder.pt")
+        if os.path.exists(encoder_ckpt):
+            self.continual_learning.load_model_weights(
+                self.interaction_manager.shared_task_space.task_encoder,
+                encoder_ckpt
+            )
+        self.continual_learning.load_ewc_state()
         self.adaptation_tracker = MutualAdaptationTracker()
         self._setup_communication()
         self.enable_sil = rospy.get_param("sil/enable", True)
@@ -257,7 +302,8 @@ class EnhancedRobotController:
             self._start_memory_autosave()
         signal.signal(signal.SIGINT, self._signal_handler)
         signal.signal(signal.SIGTERM, self._signal_handler)
-        rospy.loginfo("[SIL] Robot Controller initialised with full co-adaptation")
+        
+        rospy.loginfo("[SIL] Robot Controller initialized with full co-adaptation")
     
     def _setup_communication(self):
         self.response_publisher = rospy.Publisher(
@@ -290,6 +336,7 @@ class EnhancedRobotController:
                 result = self.interaction_manager.process_bidirectional_interaction(
                     input_text, context
                 )
+                """
                 self._track_performance(input_text, result)
                 if self.interaction_manager.shared_task_space.human_belief_state:
                     self.adaptation_tracker.update(
@@ -310,16 +357,65 @@ class EnhancedRobotController:
                         model_params = {name: p.detach().numpy() for name, p in 
                                     self.interaction_manager.shared_task_space.task_encoder.named_parameters()}
                         self.continual_learning.store_task_knowledge(model_params, [gradients])
+                        self.continual_learning.save_model_weights(
+                            self.interaction_manager.shared_task_space.task_encoder
+                        )
+                        self.continual_learning.save_ewc_state()
+                       # self.continual_learning.update_task_weights()
                     self.continual_learning.protect_knowledge()
                 current_perf = self._get_recent_performance()
                 if self.continual_learning.detect_task_shift(current_perf, self.performance_history):
                     self.continual_learning.protect_knowledge()
                 self._publish_metrics()  
+                """
+                if self.interaction_manager.shared_task_space.human_belief_state:
+                    self.adaptation_tracker.update(
+                        self.interaction_manager.shared_task_space.human_belief_state,
+                        self.interaction_manager.shared_task_space.agent_belief_state,
+                        result.get('result', {}).get('success', False)
+                    )
+                self._publish_metrics()
             else:
                 self._process_basic_command(input_text)  
         except Exception as e:
             rospy.logerr(f"[SIL] Error: {e}")
             self.response_publisher.publish(String(data="I encountered an error. Please try again."))
+    
+    def on_interaction_complete(self, human_input, task_signature, success):
+        self.performance_history.append(1.0 if success else 0.0)
+        if len(self.performance_history) > 1000:
+            self.performance_history.pop(0)
+        last = getattr(self, '_last_task_signature', None)
+        task_changed = last is not None and task_signature != last
+        perf_shift = self.continual_learning.detect_task_shift(
+            self._get_recent_performance(), self.performance_history)
+        if task_changed or perf_shift:
+            rospy.loginfo(f"[SIL] Task boundary (changed={task_changed}, "
+                          f"perf_shift={perf_shift}) -> consolidating EWC")
+            self._consolidate_ewc(human_input)
+        self._last_task_signature = task_signature
+
+    def _consolidate_ewc(self, anchor_input):
+        positive = self.memory_module.find_positive_example(anchor_input)
+        negative = self.memory_module.find_negative_example(anchor_input)
+        if positive and negative:
+            self.interaction_manager.fine_tune_on_interaction(anchor_input, positive, negative)
+        episodes = list(self.memory_module.episodic_memory)[-32:]
+        texts = [getattr(ep, 'human_input', '') for ep in episodes]
+        grads = self.interaction_manager.collect_task_gradients(texts)
+        if not grads:
+            rospy.logwarn("[SIL] EWC: no usable gradients; skipping consolidation.")
+            return
+        encoder = self.interaction_manager.shared_task_space.task_encoder
+        model_params = {name: p.detach().cpu().numpy() for name, p in encoder.named_parameters()}
+        self.continual_learning.store_task_knowledge(model_params, grads)
+        self.continual_learning.save_model_weights(encoder)
+        self.continual_learning.save_ewc_state()
+        self.continual_learning.protect_knowledge()
+        import numpy as np
+        fm = self.continual_learning.fisher_matrices[self.continual_learning.current_task_id - 1]
+        nz = sum(int(np.count_nonzero(v)) for v in fm.values())
+        rospy.loginfo(f"[SIL] EWC consolidated over {len(grads)} samples. Non-zero Fisher elems: {nz}")
     
     def handle_feedback(self, msg):
         feedback_text = msg.data.strip()
@@ -373,7 +469,6 @@ class EnhancedRobotController:
                                 if self.data_logger.sil_metrics['belief_alignments'] else 0.5
             }
         }
-        
         self.sil_metrics_publisher.publish(String(data=json.dumps(metrics)))
         self.adaptation_publisher.publish(String(data=json.dumps(self.adaptation_tracker.metrics)))
     
@@ -403,6 +498,10 @@ class EnhancedRobotController:
                     if not rospy.is_shutdown():
                         self.memory_module.save_memory()
                         self.continual_learning.save_checkpoint()
+                        self.continual_learning.save_model_weights(
+                            self.interaction_manager.shared_task_space.task_encoder
+                        )
+                        self.continual_learning.save_ewc_state()
                         rospy.loginfo("[SIL] Auto-save completed")
                 except Exception as e:
                     rospy.logerr(f"[SIL] Auto-save error: {e}")
@@ -421,6 +520,7 @@ class EnhancedRobotController:
         }
         api_key_env_var = api_key_mapping.get(llm_provider_name)
         self.api_key_value = None
+        
         if api_key_env_var:
             if llm_api_key_from_config and str(llm_api_key_from_config).strip():
                 self.api_key_value = llm_api_key_from_config
@@ -433,8 +533,17 @@ class EnhancedRobotController:
     def _signal_handler(self, signum, frame):
         rospy.loginfo(f"[SIL] Shutting down gracefully...")
         if self.auto_save_memory:
-            self.memory_module.save_memory()
-            self.continual_learning.save_checkpoint()
+            for _save in (
+                self.memory_module.save_memory,
+                self.continual_learning.save_checkpoint,
+                lambda: self.continual_learning.save_model_weights(
+                    self.interaction_manager.shared_task_space.task_encoder),
+                self.continual_learning.save_ewc_state,
+            ):
+                try:
+                    _save()
+                except Exception as e:
+                    rospy.logerr(f"[SIL] Shutdown save step failed: {e}")
         rospy.signal_shutdown("SIL Robot Controller shutdown")
     
     def _process_basic_command(self, input_text):
