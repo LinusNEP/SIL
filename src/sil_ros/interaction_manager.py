@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import re
+import os
 from typing import Dict, List, Any, Optional, Tuple
 from std_msgs.msg import String
 from datetime import datetime
@@ -358,6 +359,22 @@ class SymbioticInteractionManager:
     def set_controller_reference(self, controller):
         self.controller_ref = controller
 
+    def _task_signature(self, intent: dict) -> str:
+        actions = intent.get('actions')
+        if actions:
+            names = [a.get('action', '') for a in actions if isinstance(a, dict)]
+            return names[0] if names else intent.get('action_type', 'UNKNOWN')
+        return intent.get('action', intent.get('action_type', 'UNKNOWN'))
+
+    def _notify_interaction_complete(self, human_input: str, intent: dict, success: bool):
+        self.last_task_signature = self._task_signature(intent)
+        ctrl = getattr(self, 'controller_ref', None)
+        if ctrl is not None and hasattr(ctrl, 'on_interaction_complete'):
+            try:
+                ctrl.on_interaction_complete(human_input, self.last_task_signature, success)
+            except Exception as e:
+                rospy.logerr(f"[SIL] on_interaction_complete failed: {e}")
+    
     def fine_tune_on_interaction(self, anchor_input, positive_input, negative_input):
         rospy.loginfo("[SIL] Starting fine-tuning of LatentTaskEncoder...")
         encoder = self.shared_task_space.task_encoder
@@ -402,6 +419,24 @@ class SymbioticInteractionManager:
         )
         return gradients
     
+    def collect_task_gradients(self, texts, max_samples=16):
+        import numpy as np
+        encoder = self.shared_task_space.task_encoder
+        sent_encoder = self.shared_task_space.sentence_encoder
+        encoder.eval() 
+        grads = []
+        for t in [x for x in texts if x][:max_samples]:
+            emb = torch.FloatTensor(sent_encoder.encode(t)).unsqueeze(0)
+            encoder.zero_grad()
+            z = encoder(emb)
+            (0.5 * (z ** 2).sum()).backward()
+            g = {name: p.grad.detach().cpu().numpy().copy()
+                 for name, p in encoder.named_parameters() if p.grad is not None}
+            if g:
+                grads.append(g)
+        encoder.zero_grad()
+        return grads
+    
     def process_bidirectional_interaction(self, human_input: str, context: Dict = None) -> Dict:
         with self.interaction_lock:
             context = context or {}
@@ -441,11 +476,15 @@ class SymbioticInteractionManager:
                 return self._handle_suggestion_with_pending(parsed_intent, context)    
             else:
                 execution_result = self._execute_intent(parsed_intent, context)
-            if (execution_result.get('success') and 
+            self._update_from_execution(human_input, execution_result,
+                                        bool(execution_result.get('success', False)))
+            if (execution_result.get('success') and
                 self.proactive_suggestions_enabled and
                 not hasattr(self.action_executor, '_in_sequence_timing')):
                 self._generate_dynamic_follow_up(parsed_intent, human_input, execution_result)
             self._store_interaction(human_input, parsed_intent, execution_result, confidence)
+            self._notify_interaction_complete(human_input, parsed_intent,
+                                              bool(execution_result.get('success', False)))
             return {'type': 'EXECUTION_RESULT', 'result': execution_result}
     
     def _refine_plan(self, new_human_input: str, context: Dict) -> Dict:
@@ -772,6 +811,9 @@ IMPORTANT:
             failed_steps = self.persistent_context.get('plan_failed_steps', [])
             intent_summary = {'action_type': 'MULTI_STEP_PLAN', 'steps': len(plan)}
             exec_result = {'success': all_success, 'failed_steps': failed_steps}
+            self._update_from_execution(original_command, exec_result, all_success)
+            self._store_interaction(original_command, intent_summary, exec_result, 1.0)
+            self._notify_interaction_complete(original_command, intent_summary, all_success)
             dynamic_response = self._generate_dynamic_follow_up(intent_summary, original_command, exec_result)
             self.persistent_context['is_executing_plan'] = False
             self.persistent_context['current_plan'] = []
@@ -1076,7 +1118,7 @@ IMPORTANT:
                 state['direction'] = self.action_executor.get_cardinal_direction(state['yaw'])
         return state
 
-# ============= HELPER =============
+# ============= HELPER CLASSES =============
 class UncertaintyEstimator:
     def __init__(self, llm_interface, config: SILConfig = None):
         self.llm_interface = llm_interface

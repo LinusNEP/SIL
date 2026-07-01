@@ -46,7 +46,7 @@ class DepthEstimator:
         self.device = device
     def pixel_to_3d_point(self, u, v, depth):
         if depth <= 0.0 or not np.isfinite(depth):
-            return None  # invalid depth
+            return None  
         x = (u - self.cx) * depth / self.fx
         y = (v - self.cy) * depth / self.fy
         z = depth
@@ -68,7 +68,7 @@ class DepthEstimator:
         depth_map = prediction.squeeze().cpu().numpy()
         depth_map = cv2.resize(depth_map, (w, h), interpolation=cv2.INTER_LINEAR)
         depth_map = depth_map / np.max(depth_map)
-        depth_map *= 4.0  # max depth = 4 meters
+        depth_map *= 4.0  
         return float(np.median(depth_map[mask]))
 
 class ObjectTracker:
@@ -108,7 +108,6 @@ class PerceptionModule:
             rospack = rospkg.RosPack()
             sam_checkpoint = os.path.join(rospack.get_path('sil_ros'), 'models', 'sam_vit_b_01ec64.pth')
         elif not os.path.isabs(sam_checkpoint):
-            # Resolve relative to the package root
             rospack = rospkg.RosPack()
             package_root = rospack.get_path('sil_ros')
             sam_checkpoint = os.path.join(package_root, sam_checkpoint)
@@ -146,7 +145,6 @@ class PerceptionModule:
         self.color_confidence_threshold = rospy.get_param("/perception/color_confidence_threshold", 0.15)
         self.depth_valid_radius = int(rospy.get_param("/perception/depth_valid_radius", 5))
         self.depth_stale_timeout = float(rospy.get_param("/perception/depth_stale_timeout", 2.0))
-
         self.perception_backend = rospy.get_param("perception/backend", "clip_sam")
         self.open_vocabulary = bool(rospy.get_param("perception/open_vocabulary", True))
         self.vocabulary_prompts = rospy.get_param(
@@ -155,7 +153,6 @@ class PerceptionModule:
             rospy.get_param("perception/use_command_vocabulary", True))
         self.sam_mask_score_threshold = float(
             rospy.get_param("perception/sam_mask_score_threshold", 0.4))
-
         self._open_vocab_backend = None
         if self.perception_backend != "clip_sam":
             try:
@@ -195,7 +192,6 @@ class PerceptionModule:
             prob_thresh = self.detection_confidence_threshold
         if color_thresh is None:
             color_thresh = self.color_confidence_threshold
-
         if self.image_manager.rgb_image is None:
             rospy.logwarn("[Perception] No RGB image available for detection.")
             return []
@@ -205,7 +201,6 @@ class PerceptionModule:
         if rospy.Time.now() - self.image_manager.last_image_time > rospy.Duration(self.depth_stale_timeout):
             rospy.logwarn("[Perception] Depth image is stale. Falling back to monocular.")
             return None
-
         if self._open_vocab_backend is not None:
             return self._detect_open_vocab(self._resolve_queries(queries), prob_thresh)
         return self._detect_clip_sam(prob_thresh, color_thresh, queries)
@@ -219,7 +214,6 @@ class PerceptionModule:
         except Exception as e:
             rospy.logerr(f"[Perception] Backend '{self.perception_backend}' failed: {e}")
             return []
-
         detections = []
         for region in regions:
             if region["score"] < prob_thresh:
@@ -235,7 +229,7 @@ class PerceptionModule:
             detections.append({
                 "label": region["label"],
                 "confidence": region["score"],
-                "color": "unknown",          # colour is part of the concept phrase
+                "color": "unknown",     
                 "color_confidence": 0.0,
                 "pose": pose,
                 "mask": mask.copy(),
@@ -248,8 +242,7 @@ class PerceptionModule:
 
     def _detect_clip_sam(self, prob_thresh=None, color_thresh=None, queries=None):
         rospy.loginfo("[Perception] Starting object detection (clip_sam)...")
-        if queries and self.use_command_vocabulary:
-            self.object_labels = [q for q in queries if q]
+        clip_labels = [q for q in queries if q] if (queries and self.use_command_vocabulary) else list(self.object_labels)
         detections = []
         valid_masks = 0
         rejected = {'quality': 0, 'energy': 0, 'confidence': 0, 'pose': 0}
@@ -264,7 +257,7 @@ class PerceptionModule:
                 rejected['quality'] += 1
                 continue
             try:
-                obj_label, obj_conf, color_label, color_conf, energy = self.classify_with_uncertainty(mask)
+                obj_label, obj_conf, color_label, color_conf, energy = self.classify_with_uncertainty(mask, obj_labels=clip_labels)
                 rospy.loginfo(f"[Perception] Object candidate: {obj_label} ({obj_conf:.2f}), "
                             f"Color: {color_label} ({color_conf:.2f}), Energy: {energy:.2f}")
                 if energy > self.energy_threshold:
@@ -317,7 +310,6 @@ class PerceptionModule:
         except Exception as e:
             rospy.logerr(f"Mask generation failed: {e}")
             return []
-
     def classify_mask(self, rgb_image, mask):
         masked_img = rgb_image.copy()
         masked_img[~mask] = 0
@@ -326,7 +318,6 @@ class PerceptionModule:
             out = self.clip_model(**inputs)
             probs = out.logits_per_image.softmax(dim=1)
         idx = probs.argmax(dim=1).item()
-
         num_obj = len(self.object_labels)
         if idx < num_obj:
             label = self.object_labels[idx]
@@ -373,13 +364,13 @@ class PerceptionModule:
                 self.data_logger.log(f"TF transform failed: {e}")
             return None
     def send_latest_image(self):
-        """Publish the most recent RGB frame. Returns True if an image was sent."""
         if self.image_manager.rgb_image is not None:
             img_msg = self.image_manager.bridge.cv2_to_imgmsg(self.image_manager.rgb_image, "bgr8")
             self.image_publisher.publish(img_msg)
             return True
         rospy.logwarn("No RGB image available to publish.")
         return False
+    
     def get_object_locations(self, queries=None):
         detections = self.detect_objects(queries=queries)
         locs = {}
@@ -401,6 +392,7 @@ class PerceptionModule:
     def get_detected_objects(self):
         detections = self.detect_objects()
         return [det["label"] for det in detections]
+    
     def get_object_pose(self, object_name, prob_thresh=0.2):
         detections = self.detect_objects()
         for det in detections:
@@ -409,10 +401,11 @@ class PerceptionModule:
                 pose.header.stamp = rospy.Time.now()
                 pose.header.frame_id = self.base_frame
                 pose.pose.position = det["position"]
-                pose.pose.orientation.w = 1.0  # No rotation
+                pose.pose.orientation.w = 1.0 
                 return pose
         rospy.logwarn(f"Object '{object_name}' not found with sufficient confidence.")
         return None
+    
     def get_angle_to_object(self, object_name):
         pose = self.get_object_pose(object_name)
         if pose is None:
@@ -442,7 +435,6 @@ class PerceptionModule:
                 return []
             image_rgb = cv2.cvtColor(rgb_image, cv2.COLOR_BGR2RGB)
             valid_masks = []
-            # Point-prompted segmentation
             try:
                 self.sam_predictor.set_image(image_rgb)
                 grid_size = 7 if min(height, width) > 500 else 5
@@ -496,11 +488,16 @@ class PerceptionModule:
             rospy.logerr(f"[Perception] generate_robust_masks failed: {str(e)}")
             return []
         
-    def classify_with_uncertainty(self, mask):
+    def classify_with_uncertainty(self, mask, obj_labels=None):
         try:
             if not isinstance(mask, np.ndarray) or mask.ndim != 2 or mask.sum() == 0:
                 rospy.logwarn("[Perception] Empty or invalid mask passed to classify_with_uncertainty.")
-                return ("unknown", 0.0, "unknown", 0.0, 1.0) 
+                return ("unknown", 0.0, "unknown", 0.0, 1.0)
+            obj_labels = obj_labels if obj_labels else self.object_labels
+            all_labels = obj_labels + self.color_labels
+            if not all_labels:
+                rospy.logwarn(f"[Perception] Empty label lists: object_labels={self.object_labels}, color_labels={self.color_labels}")
+                return ("unknown", 0.0, "unknown", 0.0, 1.0)
             rgb_image = self.image_manager.rgb_image
             if rgb_image is None:
                 rospy.logwarn("[Perception] No RGB image available during classification.")
@@ -508,11 +505,14 @@ class PerceptionModule:
             clip_size = (224, 224)
             resized_rgb = cv2.resize(rgb_image, clip_size, interpolation=cv2.INTER_LINEAR)
             resized_mask = cv2.resize(mask.astype(np.uint8), clip_size, interpolation=cv2.INTER_NEAREST).astype(bool)
+            resized_rgb = cv2.cvtColor(resized_rgb, cv2.COLOR_BGR2RGB)   # CLIP expects RGB; frame is bgr8
             masked_rgb = resized_rgb.copy()
-            masked_rgb[~resized_mask] = 0
+            masked_rgb[~resized_mask] = (masked_rgb[~resized_mask] * 0.3).astype(masked_rgb.dtype)  # dim, don't blacken
+            prompts = [f"a photo of a {c}" for c in obj_labels]
+            color_prompts = [f"a {c} colored object" for c in self.color_labels]
             inputs = self.clip_processor(
                 images=masked_rgb,
-                text=self.object_labels + self.color_labels,
+                text=prompts + color_prompts,
                 return_tensors="pt",
                 padding=True
             ).to(self.device)
@@ -521,12 +521,12 @@ class PerceptionModule:
                 logits = outputs.logits_per_image 
                 probs = logits.softmax(dim=1)
             energy = -torch.logsumexp(logits, dim=1).item()
-            num_obj_labels = len(self.object_labels)
+            num_obj_labels = len(obj_labels)
             obj_probs = probs[:, :num_obj_labels]
             color_probs = probs[:, num_obj_labels:]
             obj_conf, obj_idx = obj_probs.max(dim=1)
             color_conf, color_idx = color_probs.max(dim=1)
-            obj_label = self.object_labels[obj_idx.item()] if num_obj_labels > 0 else "unknown"
+            obj_label = obj_labels[obj_idx.item()] if num_obj_labels > 0 else "unknown"
             color_label = self.color_labels[color_idx.item()] if len(self.color_labels) > 0 else "unknown"
             return (obj_label, obj_conf.item(), color_label, color_conf.item(), energy)
         except Exception as e:
@@ -556,28 +556,22 @@ class PerceptionModule:
                 try:
                     camera_point = self.depth_estimator.pixel_to_3d_point(centroid[0], centroid[1], depth_val)
                     now = rospy.Time.now()
-                    
-                    self.listener.waitForTransform(self.base_frame, self.camera_frame, now, rospy.Duration(1.0))
+                    self.listener.waitForTransform(self.camera_frame, self.base_frame, now, rospy.Duration(1.0))
                     pt = PointStamped()
                     pt.header.stamp = now
                     pt.header.frame_id = self.camera_frame
                     pt.point.x, pt.point.y, pt.point.z = camera_point
                     base_point = self.listener.transformPoint(self.base_frame, pt)
-                    
-                    # Then transform to map frame for navigation
                     self.listener.waitForTransform("map", self.base_frame, now, rospy.Duration(1.0))
                     map_point = self.listener.transformPoint("map", base_point)
                     pose = PoseStamped()
                     pose.header.stamp = now
-                    pose.header.frame_id = "map" 
+                    pose.header.frame_id = "map"  
                     pose.pose.position = map_point.point
                     pose.pose.orientation.w = 1.0
-                    
                     rospy.loginfo(f"[Perception] Object detected at map coordinates: "
                                 f"x={map_point.point.x:.2f}, y={map_point.point.y:.2f}")
-                    
                     return pose
-                    
                 except (tf.Exception, tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as tf_err:
                     rospy.logwarn(f"[Perception] TF transform attempt {attempt+1}/{retries} failed: {tf_err}")
                     rospy.sleep(wait_time)

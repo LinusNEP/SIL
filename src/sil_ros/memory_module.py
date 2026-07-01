@@ -216,9 +216,12 @@ class EpisodicSemanticMemory:
                  config: SILConfig = None):
         self.config = config or SILConfig.load()
         mem = self.config.memory
-
         self.memory_dir = memory_dir if memory_dir is not None else \
-            rospy.get_param("sil/memory_directory", "/tmp/sil_memory")
+            rospy.get_param("sil/memory_directory", "models/memory")
+        if not os.path.isabs(self.memory_dir):
+            import rospkg
+            self.memory_dir = os.path.join(
+                rospkg.RosPack().get_path('sil_ros'), self.memory_dir)
         self.max_episodic_memory = max_episodic_memory if max_episodic_memory is not None \
             else mem.max_episodic_memory                     
         self.semantic_update_threshold = semantic_update_threshold if semantic_update_threshold is not None \
@@ -309,7 +312,6 @@ class EpisodicSemanticMemory:
     def _check_co_adaptation_patterns(self):
         if len(self.episodic_memory) < self.co_adaptation_min_episodes:
             return
-        
         recent = list(self.episodic_memory)[-self.co_adaptation_min_episodes:]
         alignments = [ep.belief_alignment for ep in recent if ep.belief_alignment > 0]
         if len(alignments) > self.co_adaptation_min_episodes // 2:
@@ -349,7 +351,6 @@ class EpisodicSemanticMemory:
                     current_agent_confidence = getattr(
                         self.shared_task_space.agent_belief_state, 'confidence', 0.5
                     )
-            
             belief_sims = np.zeros(len(episodes))
             for i, ep in enumerate(episodes):
                 if current_agent_belief is not None and ep.latent_representation is not None:
@@ -377,7 +378,6 @@ class EpisodicSemanticMemory:
                 chosen_indices = np.argsort(scores)[::-1][:n_retrieve]
             chosen_indices = sorted(chosen_indices, key=lambda i: scores[i], reverse=True)
             relevant_episodes = [episodes[i] for i in chosen_indices]
-            
             rospy.loginfo(
                 f"[Memory] Retrieved {len(relevant_episodes)} episodes "
                 f"(softmax τ={temperature:.2f}, top score={scores[chosen_indices[0]]:.3f})"
@@ -437,7 +437,6 @@ class EpisodicSemanticMemory:
         Generate a brief learning reflection (1 sentence) showing what was learned.
         Examples: "I noticed navigation works better with specific coordinates."
         """
-        
         try:
             llm_interface = getattr(self, 'llm_interface', None)
             if llm_interface:
@@ -452,7 +451,6 @@ class EpisodicSemanticMemory:
         return ""
     
     def save_memory(self):
-        """Save memory to disk"""
         try:
             episodic_file = os.path.join(self.memory_dir, 'episodic_memory.pkl')
             with open(episodic_file, 'wb') as f:
