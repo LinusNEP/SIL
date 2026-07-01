@@ -195,8 +195,10 @@ class SharedTaskSpace:
         alignment = self.compute_belief_alignment()
         wh = self.confidence_blend_human
         wa = self.confidence_blend_agent
-        self.human_belief_state.confidence = wh * self.human_belief_state.confidence + (1.0 - wh) * alignment
-        self.agent_belief_state.confidence = wa * self.agent_belief_state.confidence + (1.0 - wa) * alignment
+        self.human_belief_state.confidence = float(np.clip(
+            wh * self.human_belief_state.confidence + (1.0 - wh) * success, 0.1, 1.0))
+        self.agent_belief_state.confidence = float(np.clip(
+            wa * self.agent_belief_state.confidence + (1.0 - wa) * success, 0.1, 1.0))
         self.co_adaptation.update_influence_matrices(success)
     
     def update_uncertainty(self, human_uncertainty: Dict[str, float], agent_uncertainty: Dict[str, float]):
@@ -205,7 +207,6 @@ class SharedTaskSpace:
         if self.agent_belief_state:
             self.agent_belief_state.uncertainty_map.update(agent_uncertainty)
 
-    
     def update_human_belief(self, belief_update: Dict):
         if self.human_belief_state:
             for key, value in belief_update.items():
@@ -225,7 +226,9 @@ class SharedTaskSpace:
             self.agent_belief_state.task_embedding.reshape(1, -1)
         )[0, 0]
         normalised_sim = (1.0 + cos_sim) / 2.0
-        rho = normalised_sim * self.human_belief_state.confidence * self.agent_belief_state.confidence
+        conf = float(np.sqrt(max(self.human_belief_state.confidence, 0.0)
+                             * max(self.agent_belief_state.confidence, 0.0)))
+        rho = normalised_sim * conf
         return max(0.0, min(1.0, rho))
     
     def belief_alignment(self) -> float:
@@ -460,8 +463,8 @@ class SymbioticInteractionManager:
             if any(k in human_input.lower() for k in
                    ("actually mean", "i meant", "not ", "no,", "that's wrong", "i do not see", "that is not")):
                 self.memory_module.penalize_last_episode()
-            self._update_beliefs(human_input, context) 
             parsed_intent, confidence = self._parse_with_enhanced_llm(human_input, context)
+            self._update_beliefs(human_input, context, parsed_intent)
             rospy.loginfo(f"[SIL] Parsed intent type: {parsed_intent.get('action_type')}") 
             if parsed_intent.get('action_type') == 'ACTIONS_WITH_CONVERSATION':
                 conversation = parsed_intent.get('conversation', '')
@@ -511,16 +514,15 @@ class SymbioticInteractionManager:
         """
         return self.process_bidirectional_interaction(refinement_prompt, context)
     
-    def _update_beliefs(self, human_input: str, context: Dict):
+    def _update_beliefs(self, human_input: str, context: Dict, parsed_intent: Dict = None):
         if self.shared_task_space.human_belief_state is None:
             self.shared_task_space.initialize_beliefs(human_input, context)
         else:
-            agent_interpretation = self._generate_agent_interpretation(human_input)
+            agent_interpretation = self._generate_agent_interpretation(parsed_intent or {})
             success_score = np.mean(self.persistent_context['success_history'][-10:]) \
                           if self.persistent_context['success_history'] else 0.5
             self.shared_task_space.evolve_beliefs(
-                human_input, agent_interpretation, success_score
-            )
+                human_input, agent_interpretation, success_score)
         alignment = self.shared_task_space.compute_belief_alignment()
         self.adaptation_metrics['alignment_history'].append(alignment)
         self._publish_beliefs()
@@ -544,8 +546,24 @@ class SymbioticInteractionManager:
             }
             self.belief_publisher.publish(String(data=json.dumps(belief_data)))
     
-    def _generate_agent_interpretation(self, human_input: str) -> str:
-        return f"Understanding: {human_input}"
+    def _generate_agent_interpretation(self, parsed_intent: dict) -> str:
+        actions = parsed_intent.get('actions') or (
+            [parsed_intent] if parsed_intent.get('action') else [])
+        parts = []
+        for a in actions:
+            act = (a.get('action') or '').replace('_', ' ').lower()
+            if not act:
+                continue
+            if a.get('destination_name'):
+                act += f" {a['destination_name'].replace('_', ' ')}"
+            elif a.get('angle') is not None:
+                act += f" {a['angle']} degrees"
+            elif a.get('distance') is not None:
+                act += f" {a['distance']} meters"
+            parts.append(act)
+        if parts:
+            return "; ".join(parts)
+        return parsed_intent.get('conversation') or parsed_intent.get('action_type', 'converse')
     
     def _handle_misalignment(self, diagnosis: Dict, human_input: str, context: Dict) -> Dict:
         questions = self.shared_task_space.generate_alignment_questions()
