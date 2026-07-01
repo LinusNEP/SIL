@@ -1,5 +1,6 @@
 # =============================================================================
 # SIL — Symbiotic Interactive Learning
+#
 # Reference:
 #   Nwankwo et al., "SIL: Symbiotic Interactive Learning for Language-
 #   Conditioned Human-Agent Co-Adaptation."  https://linusnep.github.io/SIL/
@@ -10,8 +11,8 @@
 # -------------------------------------
 sil:
   enable: true                         
-  memory_directory: "/tmp/sil_memory"  
-  model_directory: "/tmp/sil_models"    
+  memory_directory: "models/memory"
+  model_directory: "models"   
   auto_save_memory: true              
   memory_save_interval: 300            
   allow_memory_clear: false            
@@ -58,7 +59,7 @@ sil:
     intent_distribution_dim: 10     
 
   # ------------------------------------------
-  # Belief alignment/clarification protocol
+  # Belief alignment / clarification protocol
   # -------------------------------------------
   alignment:
     misalignment_threshold: 0.6       
@@ -153,7 +154,7 @@ sil:
     tone: "natural"                     
 
   # ------------------------------------
-  # LLM reasoning/temperature presets
+  # LLM reasoning / temperature presets
   # -------------------------------------
   use_llm_reasoning: true
   llm_temperature_variation: true
@@ -194,7 +195,7 @@ sil:
     adapt_conversation_style: true
 
 # ------------------------------
-# Episodic/semantic memory  
+# Episodic / semantic memory  
 # ------------------------------
 memory:
   max_episodic_memory: 20000      
@@ -298,7 +299,7 @@ topics:
   move_base_action: "move_base"
   emergency_stop: "/emergency_stop"
 
-  # Language/interaction I/O
+  # Language / interaction I/O
   llm_input: "/llm_input"
   llm_output: "/llm_output"
   llm_image_output: "/llm_image_output"
@@ -369,6 +370,7 @@ execution:
 # --------------------------------
 # Perception 
 # --------------------------------
+perception:
   backend: "clip_sam"
   open_vocabulary: true                 
   use_command_vocabulary: true         
@@ -410,7 +412,7 @@ execution:
 # ---------------------------------------
 # Chat GUI
 # ---------------------------------------
-  icons_directory: ""                   
+icons_directory: ""                   
 
 # -------------------------------------
 # Speech I/O (chat GUI)
