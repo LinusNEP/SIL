@@ -307,7 +307,7 @@ class EpisodicSemanticMemory:
                     episode.success_score = 0.5 
                 else:
                     align = float(np.clip(episode.belief_alignment, 0.0, 1.0))
-                    episode.success_score = float(np.clip(0.55 + 0.45 * align, 0.0, 1.0))
+                    episode.success_score = float(np.clip(0.75 + 0.25 * align, 0.0, 1.0))
             self.episodic_memory.append(episode)
             self.human_model.update_communication_style(episode)
             if 'feedback' in interaction_data:
