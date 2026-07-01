@@ -457,6 +457,10 @@ class SymbioticInteractionManager:
                 result = self._handle_pending_response(human_input, context)
                 if result:
                     return result
+            if any(k in human_input.lower() for k in
+                   ("actually mean", "i meant", "not ", "no,", "that's wrong", "i do not see", "that is not")):
+                self.memory_module.penalize_last_episode()
+            self._update_beliefs(human_input, context) 
             parsed_intent, confidence = self._parse_with_enhanced_llm(human_input, context)
             rospy.loginfo(f"[SIL] Parsed intent type: {parsed_intent.get('action_type')}") 
             if parsed_intent.get('action_type') == 'ACTIONS_WITH_CONVERSATION':
@@ -482,7 +486,8 @@ class SymbioticInteractionManager:
                 self.proactive_suggestions_enabled and
                 not hasattr(self.action_executor, '_in_sequence_timing')):
                 self._generate_dynamic_follow_up(parsed_intent, human_input, execution_result)
-            self._store_interaction(human_input, parsed_intent, execution_result, confidence)
+            self._store_interaction(human_input, parsed_intent, execution_result, confidence,
+                                    agent_response=execution_result.get('response', ''))
             self._notify_interaction_complete(human_input, parsed_intent,
                                               bool(execution_result.get('success', False)))
             return {'type': 'EXECUTION_RESULT', 'result': execution_result}
@@ -811,10 +816,11 @@ IMPORTANT:
             failed_steps = self.persistent_context.get('plan_failed_steps', [])
             intent_summary = {'action_type': 'MULTI_STEP_PLAN', 'steps': len(plan)}
             exec_result = {'success': all_success, 'failed_steps': failed_steps}
-            self._update_from_execution(original_command, exec_result, all_success)
-            self._store_interaction(original_command, intent_summary, exec_result, 1.0)
-            self._notify_interaction_complete(original_command, intent_summary, all_success)
             dynamic_response = self._generate_dynamic_follow_up(intent_summary, original_command, exec_result)
+            self._update_from_execution(original_command, exec_result, all_success)
+            self._store_interaction(original_command, intent_summary, exec_result, 1.0,
+                                    agent_response=dynamic_response)
+            self._notify_interaction_complete(original_command, intent_summary, all_success)
             self.persistent_context['is_executing_plan'] = False
             self.persistent_context['current_plan'] = []
             self.persistent_context['plan_step_index'] = 0
@@ -1060,10 +1066,11 @@ IMPORTANT:
             context += f"{entry['type']}: {entry['message'][:100]}...\n"
         return context
     
-    def _store_interaction(self, human_input: str, intent: Dict, result: Dict, confidence: float):
+    def _store_interaction(self, human_input, intent, result, confidence, agent_response=''):
         try:
             interaction_data = {
                 'human_input': human_input,
+                'agent_response': agent_response, 
                 'parsed_intent': intent,
                 'execution_result': result,
                 'confidence': confidence,

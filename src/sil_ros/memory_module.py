@@ -299,7 +299,15 @@ class EpisodicSemanticMemory:
                     episode.belief_alignment = self.shared_task_space.compute_belief_alignment() \
                                              if hasattr(self.shared_task_space, 'compute_belief_alignment') else 0.0
             if 'execution_result' in interaction_data:
-                episode.success_score = 1.0 if interaction_data['execution_result'].get('success') else 0.0
+                exec_ok = bool(interaction_data['execution_result'].get('success'))
+                atype = (interaction_data.get('parsed_intent') or {}).get('action_type', '')
+                if not exec_ok:
+                    episode.success_score = 0.0  
+                elif atype in ('CONVERSATION', 'UNKNOWN'):
+                    episode.success_score = 0.5 
+                else:
+                    align = float(np.clip(episode.belief_alignment, 0.0, 1.0))
+                    episode.success_score = float(np.clip(0.55 + 0.45 * align, 0.0, 1.0))
             self.episodic_memory.append(episode)
             self.human_model.update_communication_style(episode)
             if 'feedback' in interaction_data:
@@ -597,3 +605,8 @@ class EpisodicSemanticMemory:
                 lowest_sim = sims[i]
                 best_example = ep.human_input
         return best_example
+    
+    def penalize_last_episode(self, score: float = 0.15):
+        if self.episodic_memory:
+            self.episodic_memory[-1].success_score = score
+            rospy.loginfo("[Memory] Previous episode marked as low-success (correction detected).")
