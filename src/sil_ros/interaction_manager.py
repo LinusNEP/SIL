@@ -137,7 +137,7 @@ class SharedTaskSpace:
         self.misalignment_threshold = self.config.alignment.misalignment_threshold  
         self.uncertainty_source_threshold = self.config.alignment.uncertainty_source_threshold
         rospy.loginfo(
-            f"[SharedTaskSpace] Neural latent space initialized "
+            f"[SharedTaskSpace] Neural latent space initialised"
             f"(d={self.latent_dim}, encoder={enc.sentence_encoder_model})"
         )
     
@@ -170,7 +170,6 @@ class SharedTaskSpace:
         if not self.human_belief_state or not self.agent_belief_state:
             self.initialize_beliefs(human_input, {})
             return
-        
         human_latent = self.project_to_latent(human_input)
         agent_latent = self.project_to_latent(agent_response)
         delta_agent, delta_human = self.co_adaptation.compute_mutual_influence(
@@ -245,12 +244,10 @@ class SharedTaskSpace:
             'is_misaligned': is_misaligned,
             'uncertainty_sources': []
         }
-        
         if is_misaligned and self.agent_belief_state:
             for aspect, uncertainty in self.agent_belief_state.uncertainty_map.items():
                 if uncertainty > self.uncertainty_source_threshold:
                     diagnosis['uncertainty_sources'].append(aspect)
-        
         return is_misaligned, diagnosis
     
     def generate_alignment_questions(self) -> List[str]:
@@ -349,7 +346,6 @@ class SymbioticInteractionManager:
             'success_rate': 0.5,
             'adaptation_events': 0
         }
-
         self.response_publisher = rospy.Publisher(
             rospy.get_param("topics/llm_output", "/llm_output"), String, queue_size=10)
         self.tts_publisher = rospy.Publisher(
@@ -423,7 +419,6 @@ class SymbioticInteractionManager:
         return gradients
     
     def collect_task_gradients(self, texts, max_samples=16):
-        import numpy as np
         encoder = self.shared_task_space.task_encoder
         sent_encoder = self.shared_task_space.sentence_encoder
         encoder.eval() 
@@ -496,7 +491,6 @@ class SymbioticInteractionManager:
             return {'type': 'EXECUTION_RESULT', 'result': execution_result}
     
     def _refine_plan(self, new_human_input: str, context: Dict) -> Dict:
-        """Pauses the current plan and asks the LLM to refine it."""
         self.persistent_context['is_executing_plan'] = False
         plan = self.persistent_context['current_plan']
         idx = self.persistent_context['plan_step_index']
@@ -506,9 +500,7 @@ class SymbioticInteractionManager:
         Original Goal: {self.persistent_context.get('last_command', 'unknown')}
         Completed Steps: {plan[:idx]}
         Remaining Steps: {remaining_steps}
-        
         The user has just interrupted with a new instruction: "{new_human_input}"
-        
         Based on this new information, please generate a new, revised list of 'Action' steps to achieve the user's updated goal.
         Start with a conversational response acknowledging the change.
         """
@@ -639,8 +631,7 @@ IMPORTANT:
             return {
                 'action_type': 'CONVERSATION',
                 'response': llm_response
-            }, 0.6
-            
+            }, 0.6     
         except Exception as e:
             rospy.logerr(f"[SIL] LLM error: {e}")
             return {'action_type': 'UNKNOWN'}, 0.2
@@ -706,6 +697,7 @@ IMPORTANT:
     User: \"what can you do?\"
     Response: I can navigate to locations, take photos, describe what I see, and perform movement patterns. How can I help?
     """)
+        
     def _extract_conversation(self, llm_response: str) -> str:
         match = re.search(r'^\s*(Action|PendingAction)', llm_response, re.MULTILINE)
         if match:
@@ -750,7 +742,6 @@ IMPORTANT:
                         return structured
                 else:
                     return structured
-
         desc_lower = desc.lower()
         if 'coordinates' in desc_lower or 'coordinate' in desc_lower:
             coords = self._extract_coordinates(desc_lower)
@@ -827,7 +818,6 @@ IMPORTANT:
             return {'success': True, 'response': "No plan to execute."}
         plan = self.persistent_context['current_plan']
         idx = self.persistent_context['plan_step_index']
-
         if idx >= len(plan):
             original_command = self.persistent_context.get('last_command', 'the plan')
             all_success = self.persistent_context.get('plan_success', True)
@@ -906,7 +896,6 @@ IMPORTANT:
         - REJECTION (user declines/cancels the action)
         - NEW_COMMAND (user is giving a completely different instruction)
         - CONTINUATION (user wants to continue with what was discussed)
-        
         Respond with just the classification word.
         """
         try:
