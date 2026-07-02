@@ -2,6 +2,7 @@
 import os
 import torch
 import rospy
+from sil_ros.interaction_manager import LatentTaskEncoder
 
 def save_encoder(encoder, path: str, metadata: dict = None):
     os.makedirs(os.path.dirname(path) if os.path.dirname(path) else ".", exist_ok=True)
@@ -37,7 +38,6 @@ def load_encoder(encoder, path: str) -> bool:
 def create_encoder_from_checkpoint(path: str):
     checkpoint = torch.load(path, map_location="cpu")
     config = checkpoint["config"]
-    from sil_ros.interaction_manager import LatentTaskEncoder
     encoder = LatentTaskEncoder(**config)
     encoder.load_state_dict(checkpoint["state_dict"])
     return encoder
