@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-"""Skill registry for SIL.
-"""
 from __future__ import annotations
 import re
 from dataclasses import dataclass, field
@@ -147,11 +145,9 @@ class SkillRegistry:
         skill = self.get(name)
         if skill is None:
             return None
-
         action: Dict[str, Any] = {"action": skill.name}
         param_by_name = {p.name: p for p in skill.params}
         positional: List[Any] = []
-
         for token in self._split_top_level(arg_str):
             if "=" in token and re.match(r"^\s*[A-Za-z_][A-Za-z0-9_]*\s*=", token):
                 key, raw = token.split("=", 1)
