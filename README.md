@@ -51,7 +51,7 @@ Before opening a PR, please run the checks: `python -m compileall src scripts` a
 This work is licensed under a [Creative Commons Attribution International 4.0 License](https://creativecommons.org/licenses/by/4.0/).
 
 ## Acknowledgments
-- This work was supported by the xxxxxx organisation
+- This work was supported by the MINEVIEW project (#FO999927835), funded by the Republic of Austria, Federal Ministry of Environment, Innovation and Technology
 - Built upon foundational research in human-robot interaction and continual learning
 - Uses open-source components including ROS, PyTorch, and various foundation models
 
